@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inicio - OnlineGDB Stats{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row min-vh-75 align-items-center">
+        <div class="col-lg-6">
+            <h1 class="display-4 fw-bold text-primary">OnlineGDB Stats</h1>
+            <p class="lead">Sistema de seguimiento de estadísticas para ejercicios de programación realizados en OnlineGDB</p>
+            
+            <div class="mt-4">
+                <h4>¿Qué puedes hacer aquí?</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success"></i> 
+                        Registrar el estado de tus ejercicios con el sistema de semáforos
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-chart-line text-info"></i> 
+                        Ver tu progreso y estadísticas en tiempo real
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-trophy text-warning"></i> 
+                        Obtener tu calificación automática basada en tu rendimiento
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-dashboard text-primary"></i> 
+                        Acceder a un dashboard completo con gráficas y métricas
+                    </li>
+                </ul>
+            </div>
+
+            <div class="mt-4">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-tachometer-alt"></i> Ir al Dashboard
+                    </a>
+                    <a href="{% url 'exercises:exercise_list' %}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-tasks"></i> Ver Ejercicios
+                    </a>
+                {% else %}
+                    <a href="{% url 'exercises:register' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-plus"></i> Registrarse
+                    </a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-6 text-center">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <h3 class="text-primary mb-4">Sistema de Semáforos</h3>
+                    <div class="row">
+                        <div class="col-4">
+                            <div class="mb-3">
+                                <i class="fas fa-circle text-success fa-3x"></i>
+                                <h5 class="mt-2">Verde</h5>
+                                <p class="small">Completado correctamente</p>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="mb-3">
+                                <i class="fas fa-circle text-warning fa-3x"></i>
+                                <h5 class="mt-2">Amarillo</h5>
+                                <p class="small">Con errores menores</p>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="mb-3">
+                                <i class="fas fa-circle text-danger fa-3x"></i>
+                                <h5 class="mt-2">Rojo</h5>
+                                <p class="small">No completado</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="text-primary">Cálculo de Notas</h5>
+                    <ul class="list-unstyled text-start">
+                        <li><strong>100% Verde:</strong> Nota = 5.0</li>
+                        <li><strong>60% Amarillo:</strong> Nota = 3.0</li>
+                        <li><strong>Resto:</strong> Nota = (Verdes/Total) × 5.0</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mt-5 py-5">
+        <div class="col-12 text-center mb-5">
+            <h2 class="display-5">Características Principales</h2>
+            <p class="lead text-muted">Todo lo que necesitas para seguir tu progreso académico</p>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-code text-primary fa-3x mb-3"></i>
+                    <h5>Ejercicios de Programación</h5>
+                    <p class="text-muted">Registra y hace seguimiento a todos tus ejercicios realizados en OnlineGDB con diferentes niveles de dificultad.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-bar text-success fa-3x mb-3"></i>
+                    <h5>Dashboard Interactivo</h5>
+                    <p class="text-muted">Visualiza tu progreso con gráficas dinámicas y estadísticas detalladas en tiempo real.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-graduation-cap text-info fa-3x mb-3"></i>
+                    <h5>Calificación Automática</h5>
+                    <p class="text-muted">El sistema calcula automáticamente tu nota basada en el rendimiento y estado de tus ejercicios.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not user.is_authenticated %}
+    <!-- CTA Section -->
+    <div class="row mt-5 py-5 bg-primary text-white rounded">
+        <div class="col-12 text-center">
+            <h3>¿Listo para empezar?</h3>
+            <p class="lead">Únete y comienza a hacer seguimiento de tu progreso académico</p>
+            <a href="{% url 'exercises:register' %}" class="btn btn-light btn-lg">
+                <i class="fas fa-rocket"></i> Comenzar Ahora
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.min-vh-75 {
+    min-height: 75vh;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.bg-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - OnlineGDB Stats{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">
+                <i class="fas fa-tachometer-alt text-primary"></i> 
+                Dashboard
+            </h1>
+            <p class="lead">Bienvenido, {{ user.first_name|default:user.username }}! Aquí tienes un resumen de tu progreso.</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas Principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ user_grade.calculated_grade }}</h4>
+                            <p class="mb-0">Nota Actual</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-star fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ user_total_submissions }}/{{ total_exercises }}</h4>
+                            <p class="mb-0">Ejercicios Enviados</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-tasks fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ progress_percentage }}%</h4>
+                            <p class="mb-0">Progreso</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ avg_grade }}</h4>
+                            <p class="mb-0">Promedio General</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Gráfica de Estado de Ejercicios -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-pie"></i> Estado de Ejercicios</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" width="400" height="200"></canvas>
+                    <div class="mt-3">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <span class="badge bg-success">Verde: {{ green_count }}</span>
+                            </div>
+                            <div class="col-4">
+                                <span class="badge bg-warning">Amarillo: {{ yellow_count }}</span>
+                            </div>
+                            <div class="col-4">
+                                <span class="badge bg-danger">Rojo: {{ red_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progreso por Dificultad -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar"></i> Progreso por Dificultad</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="difficultyChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Últimas Sumisiones -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clock"></i> Últimas Sumisiones</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_submissions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Ejercicio</th>
+                                        <th>Estado</th>
+                                        <th>Fecha</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for submission in recent_submissions %}
+                                    <tr>
+                                        <td>{{ submission.exercise.title }}</td>
+                                        <td>
+                                            {% if submission.status == 'GREEN' %}
+                                                <span class="badge bg-success">Verde</span>
+                                            {% elif submission.status == 'YELLOW' %}
+                                                <span class="badge bg-warning">Amarillo</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Rojo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ submission.submission_date|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            <a href="{% url 'exercises:exercise_detail' submission.exercise.pk %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No has enviado ejercicios aún.</p>
+                        <a href="{% url 'exercises:exercise_list' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Empezar ahora
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen de Progreso -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-trophy"></i> Tu Progreso</h5>
+                </div>
+                <div class="card-body">
+                    {% for difficulty, stats in difficulty_stats.items %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>{{ difficulty|title }}</span>
+                            <span>{{ stats.completed }}/{{ stats.total }}</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ stats.percentage }}%">
+                                {{ stats.percentage }}%
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <a href="{% url 'exercises:exercise_list' %}" class="btn btn-primary">
+                            <i class="fas fa-play"></i> Continuar Ejercicios
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Gráfica de estado de ejercicios
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Verde', 'Amarillo', 'Rojo'],
+            datasets: [{
+                data: [{{ green_count }}, {{ yellow_count }}, {{ red_count }}],
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Gráfica de progreso por dificultad
+    const difficultyCtx = document.getElementById('difficultyChart').getContext('2d');
+    const difficultyChart = new Chart(difficultyCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for difficulty, stats in difficulty_stats.items %}
+                    '{{ difficulty|title }}'{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Completados',
+                data: [
+                    {% for difficulty, stats in difficulty_stats.items %}
+                        {{ stats.completed }}{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: '#007bff'
+            }, {
+                label: 'Total',
+                data: [
+                    {% for difficulty, stats in difficulty_stats.items %}
+                        {{ stats.total }}{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: '#e9ecef'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
