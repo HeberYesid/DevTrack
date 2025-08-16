@@ -254,39 +254,111 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Gráfica de estado de ejercicios
-    const statusCtx = document.getElementById('statusChart');
-    if (statusCtx) {
-        new Chart(statusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Verde', 'Amarillo', 'Rojo'],
-                datasets: [{
-                    data: [{{ user_grade.green_exercises }}, {{ user_grade.yellow_exercises }}, {{ user_grade.red_exercises }}],
-                    backgroundColor: ['#28a745', '#ffc107', '#dc3545']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
+    // Función para mostrar mensaje de error cuando Chart.js no está disponible
+    function showChartError(containerId, message) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            const canvas = container.querySelector('canvas');
+            if (canvas) {
+                const parent = canvas.parentElement;
+                canvas.style.display = 'none';
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'alert alert-warning text-center';
+                errorMsg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + message;
+                parent.appendChild(errorMsg);
             }
-        });
+        }
     }
 
-    // Gráfica de progreso por dificultad
-    const difficultyCtx = document.getElementById('difficultyChart');
-    if (difficultyCtx) {
-        fetch('/dashboard/api/chart-data/?type=difficulty')
-            .then(response => response.json())
-            .then(data => {
-                new Chart(difficultyCtx, {
-                    type: 'bar',
-                    data: data,
+    // Verificar si Chart.js está disponible
+    if (typeof Chart !== 'undefined') {
+        try {
+            // Gráfica de estado de ejercicios
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Verde', 'Amarillo', 'Rojo'],
+                        datasets: [{
+                            data: [{{ user_grade.green_exercises }}, {{ user_grade.yellow_exercises }}, {{ user_grade.red_exercises }}],
+                            backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('Error al crear gráfica de estado:', error);
+            showChartError('statusChart', 'No se pudo cargar la gráfica de estado');
+        }
+
+        try {
+            // Gráfica de progreso por dificultad
+            const difficultyCtx = document.getElementById('difficultyChart');
+            if (difficultyCtx) {
+                fetch('/dashboard/api/chart-data/?type=difficulty')
+                    .then(response => response.json())
+                    .then(data => {
+                        new Chart(difficultyCtx, {
+                            type: 'bar',
+                            data: data,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.warn('Error al cargar datos de dificultad:', error);
+                        showChartError('difficultyChart', 'No se pudieron cargar los datos');
+                    });
+            }
+        } catch (error) {
+            console.warn('Error al crear gráfica de dificultad:', error);
+            showChartError('difficultyChart', 'No se pudo cargar la gráfica de progreso');
+        }
+
+        try {
+            // Gráfica de progreso mensual
+            const progressCtx = document.getElementById('progressChart');
+            if (progressCtx) {
+                {% if monthly_submissions %}
+                const monthlyData = {
+                    labels: [
+                        {% for submission in monthly_submissions %}
+                            '{{ submission.month }}'{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    datasets: [{
+                        label: 'Envíos por mes',
+                        data: [
+                            {% for submission in monthly_submissions %}
+                                {{ submission.count }}{% if not forloop.last %},{% endif %}
+                            {% endfor %}
+                        ],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.1
+                    }]
+                };
+
+                new Chart(progressCtx, {
+                    type: 'line',
+                    data: monthlyData,
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
@@ -297,46 +369,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 });
-            });
-    }
-
-    // Gráfica de progreso mensual
-    const progressCtx = document.getElementById('progressChart');
-    if (progressCtx) {
-        {% if monthly_submissions %}
-        const monthlyData = {
-            labels: [
-                {% for submission in monthly_submissions %}
-                    '{{ submission.month }}'{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            ],
-            datasets: [{
-                label: 'Envíos por mes',
-                data: [
-                    {% for submission in monthly_submissions %}
-                        {{ submission.count }}{% if not forloop.last %},{% endif %}
-                    {% endfor %}
-                ],
-                borderColor: '#007bff',
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                tension: 0.1
-            }]
-        };
-
-        new Chart(progressCtx, {
-            type: 'line',
-            data: monthlyData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
+                {% endif %}
             }
-        });
-        {% endif %}
+        } catch (error) {
+            console.warn('Error al crear gráfica mensual:', error);
+            showChartError('progressChart', 'No se pudo cargar la gráfica mensual');
+        }
+    } else {
+        // Chart.js no está disponible, mostrar mensajes de error
+        console.warn('Chart.js no está disponible. Las gráficas no se pueden mostrar.');
+        showChartError('statusChart', 'Gráfica no disponible (Chart.js no cargado)');
+        showChartError('difficultyChart', 'Gráfica no disponible (Chart.js no cargado)');
+        showChartError('progressChart', 'Gráfica no disponible (Chart.js no cargado)');
     }
 });
 </script>
