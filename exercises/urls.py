@@ -11,5 +11,6 @@ urlpatterns = [
     path('my-submissions/', views.my_submissions, name='my_submissions'),
     path('profile/', views.profile_view, name='profile'),
     path('register/', views.register_view, name='register'),
+    path('logout/', views.logout_view, name='logout'),
     path('api/exercise-stats/', views.exercise_stats_api, name='exercise_stats_api'),
 ]

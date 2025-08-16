@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mis Envíos - OnlineGDB Stats{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5">
+                <i class="fas fa-clipboard-list text-primary"></i> 
+                Mis Envíos
+            </h1>
+            <p class="lead">Historial completo de tus ejercicios enviados</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas del Usuario -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_submissions }}</h4>
+                            <p class="mb-0">Total Envíos</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-paper-plane fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ green_count }}</h4>
+                            <p class="mb-0">Verdes</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ yellow_count }}</h4>
+                            <p class="mb-0">Amarillos</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ red_count }}</h4>
+                            <p class="mb-0">Rojos</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-times-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nota Actual -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-star text-warning"></i> 
+                        Nota Actual: {{ grade.calculated_grade }}
+                    </h5>
+                    <p class="card-text">
+                        Tu calificación se actualiza automáticamente basada en el estado de tus ejercicios enviados.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Envíos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-list"></i> Historial de Envíos</h5>
+                </div>
+                <div class="card-body">
+                    {% if submissions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Ejercicio</th>
+                                        <th>Estado</th>
+                                        <th>Fecha de Envío</th>
+                                        <th>Dificultad</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for submission in submissions %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ submission.exercise.title }}</strong>
+                                            {% if submission.exercise.description %}
+                                                <br>
+                                                <small class="text-muted">{{ submission.exercise.description|truncatechars:50 }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if submission.status == 'GREEN' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle"></i> Verde
+                                                </span>
+                                            {% elif submission.status == 'YELLOW' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i> Amarillo
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle"></i> Rojo
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ submission.submission_date|date:"d/m/Y H:i" }}
+                                        </td>
+                                        <td>
+                                            {% if submission.exercise.difficulty == 'EASY' %}
+                                                <span class="badge bg-success">Fácil</span>
+                                            {% elif submission.exercise.difficulty == 'MEDIUM' %}
+                                                <span class="badge bg-warning">Medio</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Difícil</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'exercises:exercise_detail' submission.exercise.pk %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                            {% if submission.onlinegdb_url %}
+                                                <a href="{{ submission.onlinegdb_url }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-external-link-alt"></i> OnlineGDB
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h4>No tienes envíos aún</h4>
+                            <p class="text-muted">Comienza resolviendo algunos ejercicios para ver tu progreso aquí.</p>
+                            <a href="{% url 'exercises:exercise_list' %}" class="btn btn-primary">
+                                <i class="fas fa-tasks"></i> Ver Ejercicios
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegación -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+            </a>
+            <a href="{% url 'exercises:exercise_list' %}" class="btn btn-primary">
+                <i class="fas fa-tasks"></i> Ver Ejercicios
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
