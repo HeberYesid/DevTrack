@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Estadísticas - OnlineGDB Stats{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5">
+                <i class="fas fa-chart-line text-primary"></i> 
+                Estadísticas Detalladas
+            </h1>
+            <p class="lead">Análisis completo de tu rendimiento académico y comparación con otros estudiantes</p>
+        </div>
+    </div>
+
+    <!-- Tarjetas de Estadísticas Principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ user_grade.calculated_grade }}</h4>
+                            <p class="mb-0">Tu Nota</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-star fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ user_rank|default:"N/A" }}</h4>
+                            <p class="mb-0">Tu Ranking</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-trophy fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_students }}</h4>
+                            <p class="mb-0">Total Estudiantes</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ user_grade.total_exercises }}</h4>
+                            <p class="mb-0">Ejercicios Enviados</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clipboard-list fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Ranking de Estudiantes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-medal"></i> Top 10 Estudiantes</h5>
+                </div>
+                <div class="card-body">
+                    {% if all_grades %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Pos.</th>
+                                        <th>Estudiante</th>
+                                        <th>Nota</th>
+                                        <th>Ejercicios</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for grade in all_grades %}
+                                    <tr {% if grade.user == user %}class="table-primary"{% endif %}>
+                                        <td>
+                                            <strong>{{ forloop.counter }}</strong>
+                                            {% if forloop.counter == 1 %}
+                                                <i class="fas fa-crown text-warning"></i>
+                                            {% elif forloop.counter == 2 %}
+                                                <i class="fas fa-medal text-secondary"></i>
+                                            {% elif forloop.counter == 3 %}
+                                                <i class="fas fa-medal text-warning"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ grade.user.get_full_name|default:grade.user.username }}
+                                            {% if grade.user == user %}
+                                                <span class="badge bg-primary">Tú</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">{{ grade.calculated_grade }}</strong>
+                                        </td>
+                                        <td>{{ grade.total_exercises }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No hay estadísticas de ranking disponibles aún</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica de Estado de Ejercicios -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-pie"></i> Estado de tus Ejercicios</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Progreso por Dificultad -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar"></i> Progreso por Dificultad</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="difficultyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progreso Mensual -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line"></i> Actividad Mensual</h5>
+                </div>
+                <div class="card-body">
+                    {% if monthly_submissions %}
+                        <div class="chart-container" style="position: relative; height: 300px;">
+                            <canvas id="progressChart"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <h5>No hay datos de progreso</h5>
+                            <p class="text-muted">Comienza a resolver ejercicios para ver tu progreso mensual</p>
+                            <a href="{% url 'exercises:exercise_list' %}" class="btn btn-primary">
+                                <i class="fas fa-tasks"></i> Ver Ejercicios
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Detalladas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle"></i> Resumen de Desempeño</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h4 class="text-success">{{ user_grade.green_exercises }}</h4>
+                                <p class="text-muted">Ejercicios Verdes</p>
+                                <small class="text-success">Completados correctamente</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h4 class="text-warning">{{ user_grade.yellow_exercises }}</h4>
+                                <p class="text-muted">Ejercicios Amarillos</p>
+                                <small class="text-warning">Con errores menores</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h4 class="text-danger">{{ user_grade.red_exercises }}</h4>
+                                <p class="text-muted">Ejercicios Rojos</p>
+                                <small class="text-danger">No completados</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h4 class="text-info">
+                                    {% widthratio user_grade.total_exercises user_grade.total_exercises 100 %}%
+                                </h4>
+                                <p class="text-muted">Progreso Total</p>
+                                <small class="text-info">De ejercicios disponibles</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegación -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+            </a>
+            <a href="{% url 'exercises:my_submissions' %}" class="btn btn-primary">
+                <i class="fas fa-clipboard-list"></i> Ver Mis Envíos
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts para las gráficas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfica de estado de ejercicios
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Verde', 'Amarillo', 'Rojo'],
+                datasets: [{
+                    data: [{{ user_grade.green_exercises }}, {{ user_grade.yellow_exercises }}, {{ user_grade.red_exercises }}],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfica de progreso por dificultad
+    const difficultyCtx = document.getElementById('difficultyChart');
+    if (difficultyCtx) {
+        fetch('/dashboard/api/chart-data/?type=difficulty')
+            .then(response => response.json())
+            .then(data => {
+                new Chart(difficultyCtx, {
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    // Gráfica de progreso mensual
+    const progressCtx = document.getElementById('progressChart');
+    if (progressCtx) {
+        {% if monthly_submissions %}
+        const monthlyData = {
+            labels: [
+                {% for submission in monthly_submissions %}
+                    '{{ submission.month }}'{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Envíos por mes',
+                data: [
+                    {% for submission in monthly_submissions %}
+                        {{ submission.count }}{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.1
+            }]
+        };
+
+        new Chart(progressCtx, {
+            type: 'line',
+            data: monthlyData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        {% endif %}
+    }
+});
+</script>
+
+<style>
+.chart-container {
+    position: relative;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.table-primary {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+</style>
+{% endblock %}

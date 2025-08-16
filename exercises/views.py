@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.http import JsonResponse
@@ -191,6 +191,13 @@ def register_view(request):
         form = UserCreationForm()
     
     return render(request, 'registration/register.html', {'form': form})
+
+
+def logout_view(request):
+    """Vista personalizada de logout."""
+    logout(request)
+    messages.success(request, 'Has cerrado sesión exitosamente.')
+    return redirect('login')
 
 
 @login_required
