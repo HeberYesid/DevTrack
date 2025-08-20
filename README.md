@@ -34,6 +34,32 @@ Una aplicación web Django para hacer seguimiento y estadísticas de ejercicios 
 
 ## 🚀 Instalación y Configuración
 
+### Instalación Automática (Recomendada)
+
+Para una instalación rápida y sin errores, usa los scripts automáticos:
+
+**Windows:**
+```bash
+install_windows.bat
+```
+
+**Linux/Mac:**
+```bash
+chmod +x install_linux_mac.sh
+./install_linux_mac.sh
+```
+
+Los scripts automáticos ejecutan todos los pasos necesarios:
+- Crean el entorno virtual
+- Instalan dependencias
+- Configuran variables de entorno
+- Ejecutan migraciones
+- **Crean datos de prueba automáticamente**
+
+### Instalación Manual
+
+Si prefieres instalar paso a paso:
+
 ### 1. Clonar el repositorio
 ```bash
 git clone <url-del-repositorio>
@@ -57,25 +83,15 @@ pip install django mysqlclient django-cors-headers pillow python-decouple whiten
 ```
 
 ### 4. Configurar variables de entorno
-Edita el archivo `.env` con tus configuraciones:
+```bash
+# Copiar archivo de configuración de ejemplo
+copy .env.example .env
 
-```env
-# Desarrollo
-DEBUG=True
-SECRET_KEY=tu-clave-secreta-aqui
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-# Base de datos (SQLite por defecto)
-DB_ENGINE=django.db.backends.sqlite3
-
-# Para MySQL (descomenta y configura)
-# DB_ENGINE=django.db.backends.mysql
-# DB_NAME=onlinegdb_stats
-# DB_USER=tu_usuario_mysql
-# DB_PASSWORD=tu_password_mysql
-# DB_HOST=localhost
-# DB_PORT=3306
+# En Linux/Mac usar:
+# cp .env.example .env
 ```
+
+Edita el archivo `.env` con tus configuraciones. Para desarrollo básico, puedes usar la configuración por defecto (SQLite).
 
 ### 5. Ejecutar migraciones
 ```bash
@@ -88,7 +104,19 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-### 7. Ejecutar servidor de desarrollo
+### 7. Cargar datos de prueba (IMPORTANTE)
+```bash
+# Crear ejercicios y usuarios de ejemplo para probar el sistema
+python manage.py create_sample_data
+```
+
+Este comando creará:
+- 10 ejercicios de ejemplo con diferentes dificultades
+- 5 usuarios estudiantes (estudiante1 a estudiante5, contraseña: password123)
+- Envíos de ejercicios con estados Verde/Amarillo/Rojo aleatorios
+- Calificaciones calculadas automáticamente
+
+### 8. Ejecutar servidor de desarrollo
 ```bash
 python manage.py runserver
 ```
@@ -183,6 +211,68 @@ python manage.py collectstatic
 Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 
 ## 🆘 Soporte
+
+### Problemas Comunes
+
+#### Los ejercicios de prueba no aparecen
+Si después de la instalación no ves ejercicios en el sistema:
+
+1. **Verificar que se ejecutó el comando de datos de prueba:**
+```bash
+python manage.py create_sample_data
+```
+
+2. **Verificar la base de datos:**
+```bash
+python manage.py shell
+```
+```python
+from exercises.models import Exercise
+print(f"Ejercicios en DB: {Exercise.objects.count()}")
+```
+
+3. **Verificar configuración de .env:**
+   - Asegúrate de que el archivo `.env` existe
+   - Verifica la configuración de `DB_ENGINE`
+
+4. **Recrear la base de datos (si es necesario):**
+```bash
+# CUIDADO: Esto borra todos los datos
+rm db.sqlite3  # o elimina la base de datos MySQL
+python manage.py migrate
+python manage.py create_sample_data
+```
+
+#### Error al instalar mysqlclient
+Si tienes problemas con mysqlclient:
+
+**Windows:**
+- Descarga el wheel desde: https://www.lfd.uci.edu/~gohlke/pythonlibs/#mysqlclient
+- Instala con: `pip install mysqlclient-x.x.x-cp3xx-cp3xx-win_amdxx.whl`
+
+**Linux/Mac:**
+```bash
+# Ubuntu/Debian
+sudo apt install default-libmysqlclient-dev build-essential
+
+# CentOS/RHEL
+sudo yum install mysql-devel gcc gcc-c++
+
+# macOS
+brew install mysql
+```
+
+#### No se pueden crear usuarios
+Asegúrate de que las migraciones se ejecutaron correctamente:
+```bash
+python manage.py makemigrations exercises
+python manage.py migrate
+```
+
+### Obtener Ayuda
+
+#### Los ejercicios de prueba no aparecen
+**📖 GUÍA COMPLETA:** Ver [`SOLUCION_DATOS_PRUEBA.md`](./SOLUCION_DATOS_PRUEBA.md) para una guía paso a paso detallada.
 
 Si tienes problemas o preguntas:
 
