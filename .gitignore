@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+media/
+staticfiles/
+
+# Virtual environments
+.venv/
+backend/.venv/
+venv/
+ENV/
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE / OS files
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+
+# Env files (DO NOT COMMIT SECRETS)
+.env
+*.env
+backend/.env
+frontend/.env
+.env.local
+.env.*.local
+
+# Misc
+*.bak
+*.swp
+*.tmp
