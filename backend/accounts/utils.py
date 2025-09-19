@@ -1,3 +1,5 @@
+import os
+import requests
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import User
@@ -28,3 +30,37 @@ def send_verification_email(user: User) -> str:
         fail_silently=False,
     )
     return token
+
+
+def verify_turnstile_token(token: str, remote_ip: str = None) -> bool:
+    """
+    Verifies a Cloudflare Turnstile token.
+    Returns True if the token is valid, False otherwise.
+    """
+    if not token:
+        return False
+    
+    secret_key = os.getenv('TURNSTILE_SECRET_KEY')
+    if not secret_key:
+        # For development, you might want to skip verification
+        # In production, this should always be required
+        return getattr(settings, 'DEBUG', False)
+    
+    url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+    data = {
+        'secret': secret_key,
+        'response': token,
+    }
+    
+    if remote_ip:
+        data['remoteip'] = remote_ip
+    
+    try:
+        response = requests.post(url, data=data, timeout=10)
+        response.raise_for_status()
+        result = response.json()
+        return result.get('success', False)
+    except (requests.RequestException, ValueError, KeyError):
+        # In case of network errors or invalid responses, 
+        # you might want to allow or deny based on your security policy
+        return False

@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .utils import send_verification_email
+from .utils import send_verification_email, verify_turnstile_token
 
 User = get_user_model()
 
@@ -18,12 +18,34 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     role = serializers.ChoiceField(choices=User.Roles.choices, default=User.Roles.STUDENT)
+    turnstile_token = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ['email', 'password', 'first_name', 'last_name', 'role']
+        fields = ['email', 'password', 'first_name', 'last_name', 'role', 'turnstile_token']
+
+    def validate(self, attrs):
+        turnstile_token = attrs.get('turnstile_token')
+        
+        # Get client IP from request context
+        request = self.context.get('request')
+        remote_ip = None
+        if request:
+            remote_ip = request.META.get('HTTP_X_FORWARDED_FOR')
+            if remote_ip:
+                remote_ip = remote_ip.split(',')[0].strip()
+            else:
+                remote_ip = request.META.get('REMOTE_ADDR')
+        
+        if not verify_turnstile_token(turnstile_token, remote_ip):
+            raise serializers.ValidationError('Verificación de seguridad fallida. Intenta de nuevo.')
+        
+        return attrs
 
     def create(self, validated_data):
+        # Remove turnstile_token from validated_data as it's not a model field
+        validated_data.pop('turnstile_token', None)
+        
         email = validated_data['email'].lower().strip()
         password = validated_data['password']
         first_name = validated_data.get('first_name', '')
@@ -51,10 +73,25 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    turnstile_token = serializers.CharField(write_only=True, required=True)
 
     def validate(self, attrs: dict) -> dict:
         email = attrs.get('email', '').lower().strip()
         password = attrs.get('password')
+        turnstile_token = attrs.get('turnstile_token')
+        
+        # Verify Turnstile token first
+        request = self.context.get('request')
+        remote_ip = None
+        if request:
+            remote_ip = request.META.get('HTTP_X_FORWARDED_FOR')
+            if remote_ip:
+                remote_ip = remote_ip.split(',')[0].strip()
+            else:
+                remote_ip = request.META.get('REMOTE_ADDR')
+        
+        if not verify_turnstile_token(turnstile_token, remote_ip):
+            raise AuthenticationFailed('Verificación de seguridad fallida. Intenta de nuevo.')
 
         try:
             user = User.objects.get(email=email)
