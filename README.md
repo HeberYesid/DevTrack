@@ -61,12 +61,43 @@ Documentación de API: http://127.0.0.1:8000/api/docs/
 
 ### Autenticación y verificación por email
 
-- Registro: `POST /api/auth/register/` (por seguridad, el rol se fuerza a `STUDENT`).
-- Login: `POST /api/auth/login/`
-- Verificación: `GET /api/auth/verify/?token=...` (el email de verificación apunta a `FRONTEND_URL/verify`).
+DevTrack incluye un sistema completo de verificación por código de 6 dígitos:
+
+**Endpoints de autenticación:**
+- Registro: `POST /api/auth/register/` (rol forzado a `STUDENT` por seguridad)
+- Login: `POST /api/auth/login/` (requiere email verificado)
+- Verificación por código: `POST /api/auth/verify-code/` (código de 6 dígitos)
+- Reenviar código: `POST /api/auth/resend-code/`
+- Verificación por token: `GET /api/auth/verify/?token=...` (sistema legacy)
 - Perfil: `GET /api/auth/me/`
 
-En desarrollo, el backend de email es por consola.
+**Sistema de códigos de verificación:**
+- Se generan códigos aleatorios de 6 dígitos
+- Validez: 15 minutos
+- Se invalidan automáticamente al generar uno nuevo
+- Se muestran en la consola del servidor para desarrollo
+- Se envían por email al usuario
+
+**Configuración de email:**
+Para envío real de emails, configura en `.env`:
+```env
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=tu-email@gmail.com
+EMAIL_HOST_PASSWORD=tu-contraseña-de-aplicacion
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=DevTrack <tu-email@gmail.com>
+```
+
+Para Gmail, necesitas generar una contraseña de aplicación en tu cuenta Google.
+
+**Seguridad:**
+
+- Integración con Cloudflare Turnstile para prevenir bots
+- Validación de IP en verificaciones de seguridad
+- Tokens JWT para autenticación de sesiones
+- Códigos de verificación con expiración automática
 
 ---
 
@@ -81,9 +112,12 @@ copy .env.example .env
 
 En `frontend/.env`:
 
-```
+```env
 VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_TURNSTILE_SITE_KEY=0x4AAAAAAB195XyO5y089iC-
 ```
+
+Para producción, necesitarás configurar tus propias claves de Turnstile en [Cloudflare](https://developers.cloudflare.com/turnstile/).
 
 2. Instalar y ejecutar
 
@@ -117,7 +151,11 @@ Abrir http://localhost:5173
 3. Flujo de estudiante
 
 - Registrarse en `/register` (rol forzado a `STUDENT`).
-- Verificar correo (enlace en la consola de backend) y luego iniciar sesión.
+- Verificar correo con código de 6 dígitos:
+  - El código se muestra en la consola del servidor
+  - También se envía por email (si está configurado)
+  - Ingresar el código en `/verify-code`
+- Iniciar sesión una vez verificado el correo.
 - Revisar `Mis resultados` y el dashboard personal.
 
 ### Ejemplos de CSV
@@ -184,3 +222,6 @@ git push -u origin main
 
 - El registro público asigna `STUDENT` por defecto. Para `TEACHER`/`ADMIN`, configúralo via Admin.
 - Las notificaciones son in‑app. En el futuro se pueden enviar también por email.
+- El sistema de verificación por código de 6 dígitos es obligatorio para nuevos registros.
+- Los códigos se muestran en la consola del servidor para facilitar el desarrollo.
+- Para producción, asegúrate de configurar un proveedor de email real (Gmail, SendGrid, etc.).

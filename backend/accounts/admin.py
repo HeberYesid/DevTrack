@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.translation import gettext_lazy as _
-from .models import User, EmailVerificationToken
+from .models import User, EmailVerificationToken, EmailVerificationCode
 
 
 @admin.register(User)
@@ -33,3 +33,16 @@ class UserAdmin(DjangoUserAdmin):
 class EmailVerificationTokenAdmin(admin.ModelAdmin):
     list_display = ('user', 'token', 'created_at', 'expires_at', 'used')
     search_fields = ('user__email', 'token')
+
+
+@admin.register(EmailVerificationCode)
+class EmailVerificationCodeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'code', 'created_at', 'expires_at', 'used', 'is_valid')
+    list_filter = ('used', 'created_at')
+    search_fields = ('user__email', 'code')
+    readonly_fields = ('created_at',)
+    
+    def is_valid(self, obj):
+        return obj.is_valid()
+    is_valid.boolean = True
+    is_valid.short_description = 'Válido'

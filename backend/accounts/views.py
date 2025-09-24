@@ -7,8 +7,15 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from django.contrib.auth import get_user_model
 
-from .models import EmailVerificationToken
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from .models import EmailVerificationToken, EmailVerificationCode
+from .serializers import (
+    RegisterSerializer, 
+    LoginSerializer, 
+    UserSerializer, 
+    VerifyCodeSerializer, 
+    ResendCodeSerializer
+)
+from .utils import send_verification_code_email
 
 User = get_user_model()
 
@@ -20,7 +27,7 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        return Response({'message': 'Registro exitoso. Revisa tu correo para verificar tu cuenta.'}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Registro exitoso. Hemos enviado un código de verificación de 6 dígitos a tu correo.'}, status=status.HTTP_201_CREATED)
 
 
 class LoginView(APIView):
@@ -50,6 +57,48 @@ class VerifyEmailView(APIView):
         evt.mark_used()
 
         return Response({'message': 'Correo verificado exitosamente. Ya puedes iniciar sesión.'}, status=status.HTTP_200_OK)
+
+
+class VerifyCodeView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = VerifyCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = serializer.validated_data['user']
+        verification_code = serializer.validated_data['verification_code']
+        
+        # Marcar el código como usado
+        verification_code.mark_used()
+        
+        # Verificar el email del usuario
+        user.is_email_verified = True
+        user.save(update_fields=['is_email_verified'])
+        
+        print(f"✅ Usuario {user.email} verificado exitosamente con código {verification_code.code}")
+        
+        return Response({
+            'message': 'Correo verificado exitosamente. Ya puedes iniciar sesión.'
+        }, status=status.HTTP_200_OK)
+
+
+class ResendCodeView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = ResendCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+        
+        # Enviar nuevo código
+        send_verification_code_email(user)
+        
+        return Response({
+            'message': 'Nuevo código de verificación enviado a tu correo.'
+        }, status=status.HTTP_200_OK)
 
 
 class MeView(APIView):

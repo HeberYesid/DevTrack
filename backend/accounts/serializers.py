@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .utils import send_verification_email, verify_turnstile_token
+from .utils import send_verification_email, send_verification_code_email, verify_turnstile_token
 
 User = get_user_model()
 
@@ -65,8 +65,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.is_email_verified = False
         user.save()
 
-        # Send verification email
-        send_verification_email(user)
+        # Send verification code email
+        send_verification_code_email(user)
         return user
 
 
@@ -102,7 +102,7 @@ class LoginSerializer(serializers.Serializer):
             raise AuthenticationFailed('Credenciales inválidas.')
 
         if not user.is_email_verified:
-            raise AuthenticationFailed('Debes verificar tu correo para iniciar sesión.')
+            raise AuthenticationFailed('Debes verificar tu correo con el código de 6 dígitos para iniciar sesión.')
 
         refresh = RefreshToken.for_user(user)
         data: dict[str, Any] = {
@@ -111,3 +111,49 @@ class LoginSerializer(serializers.Serializer):
             'user': UserSerializer(user).data,
         }
         return data
+
+
+class VerifyCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6, min_length=6)
+
+    def validate(self, attrs):
+        email = attrs.get('email', '').lower().strip()
+        code = attrs.get('code', '').strip()
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Usuario no encontrado.')
+
+        # Buscar el código más reciente no usado
+        from .models import EmailVerificationCode
+        verification_code = EmailVerificationCode.objects.filter(
+            user=user, 
+            code=code, 
+            used=False
+        ).first()
+
+        if not verification_code:
+            raise serializers.ValidationError('Código inválido.')
+
+        if not verification_code.is_valid():
+            raise serializers.ValidationError('Código expirado.')
+
+        attrs['user'] = user
+        attrs['verification_code'] = verification_code
+        return attrs
+
+
+class ResendCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        email = value.lower().strip()
+        try:
+            user = User.objects.get(email=email)
+            if user.is_email_verified:
+                raise serializers.ValidationError('Esta cuenta ya está verificada.')
+            return email
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Usuario no encontrado.')
