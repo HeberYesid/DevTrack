@@ -8,7 +8,7 @@ __pycache__/
 *.sqlite3
 .mypy_cache/
 .pytest_cache/
-.coverage
+.coverageasdasdas
 htmlcov/
 
 # Django
