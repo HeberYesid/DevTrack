@@ -11,6 +11,8 @@ import Subjects from './pages/Subjects'
 import SubjectDetail from './pages/SubjectDetail'
 import NotificationsPage from './pages/Notifications'
 import MyResults from './pages/MyResults'
+import Index from "./pages/Index"
+
 
 export default function App() {
   return (
@@ -18,13 +20,16 @@ export default function App() {
       <NavBar />
       <main className="container">
         <Routes>
+          {/* Páginas públicas */}
+          <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/verify-code" element={<VerifyCode />} />
 
+          {/* Páginas protegidas */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
@@ -68,6 +73,7 @@ export default function App() {
             }
           />
 
+          {/* Cualquier ruta desconocida redirige a inicio */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
