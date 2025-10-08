@@ -1,0 +1,21 @@
+SISTEMA DE REGISTRO DE PROFESORES - DEVTRACK
+============================================
+
+GUIA RAPIDA
+-----------
+1. Admin crea invitación en: admin/accounts/teacherinvitationcode/
+2. Profesor recibe email con código
+3. Profesor se registra en: /register-teacher
+4. Profesor verifica email con código de 6 dígitos
+5. ¡Listo!
+
+CARACTERISTICAS
+---------------
+- Códigos únicos de 12 caracteres
+- Expiran en 7 días
+- Un solo uso
+- Email debe coincidir
+- Captcha obligatorio
+- Rol TEACHER automático
+
+¡Todo implementado y funcionando! 🎉

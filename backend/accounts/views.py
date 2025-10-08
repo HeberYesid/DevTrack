@@ -13,7 +13,8 @@ from .serializers import (
     LoginSerializer, 
     UserSerializer, 
     VerifyCodeSerializer, 
-    ResendCodeSerializer
+    ResendCodeSerializer,
+    RegisterTeacherSerializer
 )
 from .utils import send_verification_code_email
 
@@ -99,6 +100,18 @@ class ResendCodeView(APIView):
         return Response({
             'message': 'Nuevo código de verificación enviado a tu correo.'
         }, status=status.HTTP_200_OK)
+
+
+class RegisterTeacherView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = RegisterTeacherSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response({
+            'message': 'Registro de profesor exitoso. Hemos enviado un código de verificación de 6 dígitos a tu correo.'
+        }, status=status.HTTP_201_CREATED)
 
 
 class MeView(APIView):

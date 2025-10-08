@@ -73,6 +73,49 @@ def send_verification_code_email(user: User) -> str:
     return code
 
 
+def send_teacher_invitation_email(invitation) -> None:
+    """
+    Envía un email con el código de invitación para registro de profesor.
+    También muestra el código en la consola del servidor.
+    """
+    # Mostrar el código en la consola del servidor
+    print(f"\n{'='*60}")
+    print(f"📧 CÓDIGO DE INVITACIÓN PARA PROFESOR")
+    print(f"{'='*60}")
+    print(f"Email: {invitation.email}")
+    print(f"Código: {invitation.code}")
+    print(f"Válido hasta: {invitation.expires_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{'='*60}\n")
+
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+    register_url = f"{frontend_url}/register-teacher"
+
+    subject = '🎓 Invitación para registrarse como Profesor - DevTrack'
+    message = (
+        f"¡Hola!\n\n"
+        f"Has sido invitado a unirte a DevTrack como profesor.\n\n"
+        f"Tu código de invitación es: {invitation.code}\n\n"
+        f"Para completar tu registro, visita el siguiente enlace:\n"
+        f"{register_url}\n\n"
+        f"Este código es válido hasta: {invitation.expires_at.strftime('%d/%m/%Y %H:%M')}\n\n"
+        f"Si no solicitaste esta invitación, puedes ignorar este mensaje.\n\n"
+        f"Equipo DevTrack"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost'),
+            recipient_list=[invitation.email],
+            fail_silently=False,
+        )
+        print(f"✅ Email de invitación enviado exitosamente a {invitation.email}")
+    except Exception as e:
+        print(f"❌ Error enviando email de invitación a {invitation.email}: {str(e)}")
+        raise
+
+
 def verify_turnstile_token(token: str, remote_ip: str = None) -> bool:
     """
     Verifies a Cloudflare Turnstile token.

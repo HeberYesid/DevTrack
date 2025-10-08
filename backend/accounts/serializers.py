@@ -157,3 +157,82 @@ class ResendCodeSerializer(serializers.Serializer):
             return email
         except User.DoesNotExist:
             raise serializers.ValidationError('Usuario no encontrado.')
+
+
+class RegisterTeacherSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+    invitation_code = serializers.CharField(write_only=True, required=True)
+    turnstile_token = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = ['email', 'password', 'first_name', 'last_name', 'invitation_code', 'turnstile_token']
+
+    def validate(self, attrs):
+        email = attrs.get('email', '').lower().strip()
+        invitation_code = attrs.get('invitation_code', '').strip()
+        turnstile_token = attrs.get('turnstile_token')
+        
+        # Verify Turnstile token
+        request = self.context.get('request')
+        remote_ip = None
+        if request:
+            remote_ip = request.META.get('HTTP_X_FORWARDED_FOR')
+            if remote_ip:
+                remote_ip = remote_ip.split(',')[0].strip()
+            else:
+                remote_ip = request.META.get('REMOTE_ADDR')
+        
+        if not verify_turnstile_token(turnstile_token, remote_ip):
+            raise serializers.ValidationError('Verificación de seguridad fallida. Intenta de nuevo.')
+        
+        # Verificar código de invitación
+        from .models import TeacherInvitationCode
+        try:
+            invitation = TeacherInvitationCode.objects.get(code=invitation_code)
+        except TeacherInvitationCode.DoesNotExist:
+            raise serializers.ValidationError({'invitation_code': 'Código de invitación inválido.'})
+        
+        if invitation.used:
+            raise serializers.ValidationError({'invitation_code': 'Este código ya ha sido utilizado.'})
+        
+        if not invitation.is_valid():
+            raise serializers.ValidationError({'invitation_code': 'Este código ha expirado.'})
+        
+        # Verificar que el email coincida con el de la invitación
+        if invitation.email.lower() != email:
+            raise serializers.ValidationError({'email': 'Este email no corresponde al código de invitación.'})
+        
+        attrs['invitation'] = invitation
+        return attrs
+
+    def create(self, validated_data):
+        # Remove non-model fields
+        invitation = validated_data.pop('invitation')
+        validated_data.pop('invitation_code', None)
+        validated_data.pop('turnstile_token', None)
+        
+        email = validated_data['email'].lower().strip()
+        password = validated_data['password']
+        first_name = validated_data.get('first_name', '')
+        last_name = validated_data.get('last_name', '')
+
+        # Create teacher user
+        user = User(
+            username=email,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            role=User.Roles.TEACHER,  # Forzar rol de profesor
+        )
+        user.set_password(password)
+        user.is_active = True
+        user.is_email_verified = False
+        user.save()
+
+        # Mark invitation as used
+        invitation.mark_used(user)
+
+        # Send verification code email
+        send_verification_code_email(user)
+        return user
