@@ -32,12 +32,15 @@ class SubjectViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        # Annotate to avoid N+1 queries when getting enrollments_count
+        qs = Subject.objects.select_related('teacher').prefetch_related('enrollments')
+        
         if getattr(user, 'role', None) == 'ADMIN':
-            return Subject.objects.all()
+            return qs
         if getattr(user, 'role', None) == 'TEACHER':
-            return Subject.objects.filter(teacher=user)
+            return qs.filter(teacher=user)
         # Students: subjects where enrolled
-        return Subject.objects.filter(enrollments__student=user).distinct()
+        return qs.filter(enrollments__student=user).distinct()
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy', 'upload_enrollments_csv', 'upload_results_csv']:

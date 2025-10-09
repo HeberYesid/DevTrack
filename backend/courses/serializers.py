@@ -15,11 +15,16 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
 class SubjectSerializer(serializers.ModelSerializer):
     teacher = SimpleUserSerializer(read_only=True)
+    enrollments_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'code', 'teacher', 'created_at']
-        read_only_fields = ['teacher', 'created_at']
+        fields = ['id', 'name', 'code', 'teacher', 'created_at', 'enrollments_count']
+        read_only_fields = ['teacher', 'created_at', 'enrollments_count']
+
+    def get_enrollments_count(self, obj):
+        """Return the number of students enrolled in this subject"""
+        return obj.enrollments.count()
 
     def create(self, validated_data):
         request = self.context['request']
