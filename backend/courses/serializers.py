@@ -107,10 +107,29 @@ class ExerciseSerializer(serializers.ModelSerializer):
 
 
 class StudentExerciseResultSerializer(serializers.ModelSerializer):
+    student_email = serializers.EmailField(source='enrollment.student.email', read_only=True)
+    student_name = serializers.SerializerMethodField()
+    exercise_name = serializers.CharField(source='exercise.name', read_only=True)
+    subject_id = serializers.IntegerField(source='enrollment.subject.id', read_only=True)
+    
     class Meta:
         model = StudentExerciseResult
-        fields = ['id', 'enrollment', 'exercise', 'status', 'created_at', 'updated_at']
-        read_only_fields = ['created_at', 'updated_at']
+        fields = [
+            'id', 
+            'enrollment', 
+            'exercise', 
+            'status', 
+            'student_email',
+            'student_name',
+            'exercise_name',
+            'subject_id',
+            'created_at', 
+            'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'enrollment', 'exercise']
+    
+    def get_student_name(self, obj):
+        return f"{obj.enrollment.student.first_name} {obj.enrollment.student.last_name}".strip()
 
 
 class CSVUploadSerializer(serializers.Serializer):

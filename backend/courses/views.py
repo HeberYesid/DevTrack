@@ -286,6 +286,66 @@ class EnrollmentResultsView(viewsets.ViewSet):
         return Response({'enrollment_id': enrollment.id, 'student_email': enrollment.student.email, 'results': data, 'stats': enrollment.stats()})
 
 
+class StudentExerciseResultViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing individual student exercise results.
+    Allows teachers and admins to update result status.
+    """
+    serializer_class = StudentExerciseResultSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = StudentExerciseResult.objects.select_related(
+            'enrollment__student',
+            'enrollment__subject',
+            'enrollment__subject__teacher',
+            'exercise'
+        )
+        
+        # Filter by subject if provided
+        subject_id = self.request.query_params.get('subject')
+        if subject_id:
+            qs = qs.filter(enrollment__subject_id=subject_id)
+        
+        # Permission filtering
+        if getattr(user, 'role', None) == 'ADMIN':
+            return qs
+        if getattr(user, 'role', None) == 'TEACHER':
+            return qs.filter(enrollment__subject__teacher=user)
+        # Students can only see their own results
+        return qs.filter(enrollment__student=user)
+
+    def update(self, request, *args, **kwargs):
+        """Update a result status"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Verify user can modify this result
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        # Only teachers and admins can edit
+        if user_role not in ['ADMIN', 'TEACHER']:
+            return Response({'detail': 'Solo profesores y administradores pueden editar resultados.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Teachers can only edit results from their own subjects
+        if user_role == 'TEACHER':
+            if instance.enrollment.subject.teacher_id != user.id:
+                return Response({'detail': 'No tienes permiso para modificar resultados de esta materia.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response(serializer.data)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Handle PATCH requests"""
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+
 class MyEnrollmentsView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
