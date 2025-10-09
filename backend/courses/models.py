@@ -119,6 +119,7 @@ class StudentExerciseResult(models.Model):
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='results')
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='results')
     status = models.CharField(max_length=10, choices=Status.choices)
+    comment = models.TextField(blank=True, null=True, help_text="Comentarios o retroalimentación del profesor")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
