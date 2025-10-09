@@ -34,32 +34,47 @@ class SubjectSerializer(serializers.ModelSerializer):
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     student = SimpleUserSerializer(read_only=True)
-    student_email = serializers.EmailField(write_only=True)
+    student_email = serializers.EmailField(write_only=True, required=True)
 
     class Meta:
         model = Enrollment
         fields = ['id', 'subject', 'student', 'student_email', 'created_at']
-        read_only_fields = ['student', 'created_at']
+        read_only_fields = ['student', 'created_at', 'subject']
+
+    def validate_student_email(self, value):
+        """Validate and clean email"""
+        if not value:
+            raise serializers.ValidationError('El email es requerido.')
+        return value.lower().strip()
 
     def validate(self, attrs):
-        # ensure teacher owns subject
-        request = self.context['request']
-        subject = attrs.get('subject') or self.context.get('subject')
+        # Get subject from context (set by the view)
+        subject = self.context.get('subject')
         if subject is None:
-            raise serializers.ValidationError('Materia (subject) requerida.')
-        # inject subject for create
+            raise serializers.ValidationError({'detail': 'Materia (subject) no encontrada en el contexto.'})
+        
+        # Check permissions
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError({'detail': 'Usuario no autenticado.'})
+        
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in ['ADMIN', 'TEACHER']:
+            raise serializers.ValidationError({'detail': 'No tienes permisos para inscribir estudiantes. Solo profesores y administradores pueden hacerlo.'})
+        
+        if user_role == 'TEACHER' and subject.teacher_id != request.user.id:
+            raise serializers.ValidationError({'detail': 'Solo el profesor dueño de la materia puede inscribir estudiantes.'})
+        
+        # Store subject in attrs for create method
         attrs['subject'] = subject
-        if request.user.role not in ['ADMIN', 'TEACHER']:
-            raise serializers.ValidationError('No tienes permisos para inscribir estudiantes.')
-        if request.user.role == 'TEACHER' and subject.teacher_id != request.user.id:
-            raise serializers.ValidationError('Solo el profesor dueño de la materia puede inscribir estudiantes.')
         return attrs
 
     def create(self, validated_data):
-        email = validated_data.pop('student_email').lower().strip()
-        subject: Subject = validated_data['subject']
-        # get or create student user
-        student, _created = User.objects.get_or_create(
+        email = validated_data.pop('student_email')
+        subject = validated_data['subject']
+        
+        # Get or create student user
+        student, created = User.objects.get_or_create(
             email=email,
             defaults={
                 'username': email,
@@ -67,11 +82,21 @@ class EnrollmentSerializer(serializers.ModelSerializer):
                 'is_active': True,
             }
         )
-        # if student has no usable password, set one random
+        
+        # If student has no usable password, set one
         if not student.has_usable_password():
             student.set_unusable_password()
             student.save(update_fields=['password'])
-        enrollment, _ = Enrollment.objects.get_or_create(subject=subject, student=student)
+        
+        # Create enrollment (or get if already exists)
+        enrollment, was_created = Enrollment.objects.get_or_create(
+            subject=subject, 
+            student=student
+        )
+        
+        if not was_created:
+            raise serializers.ValidationError({'detail': f'El estudiante {email} ya está inscrito en esta materia.'})
+        
         return enrollment
 
 
