@@ -104,3 +104,34 @@ class StudentExerciseResult(models.Model):
 
     def __str__(self) -> str:
         return f"{self.enrollment.student.email} - {self.exercise.name}: {self.status}"
+
+
+class Notification(models.Model):
+    """
+    Model for in-app notifications.
+    Notifies users about important events like enrollments, results updates, etc.
+    """
+    class NotificationType(models.TextChoices):
+        ENROLLMENT = 'ENROLLMENT', 'Inscripción'
+        RESULT_CREATED = 'RESULT_CREATED', 'Resultado Creado'
+        RESULT_UPDATED = 'RESULT_UPDATED', 'Resultado Actualizado'
+        EXERCISE_CREATED = 'EXERCISE_CREATED', 'Ejercicio Creado'
+        GENERAL = 'GENERAL', 'General'
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_notifications')
+    notification_type = models.CharField(max_length=20, choices=NotificationType.choices)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    link = models.CharField(max_length=500, blank=True, null=True)  # URL to navigate to
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'is_read']),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.email} - {self.title} ({'Leída' if self.is_read else 'No leída'})"

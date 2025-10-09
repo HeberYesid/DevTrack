@@ -11,13 +11,14 @@ from django.contrib.auth import get_user_model
 from rest_framework import viewsets, permissions, status, decorators, parsers, views
 from rest_framework.response import Response
 
-from .models import Subject, Enrollment, Exercise, StudentExerciseResult
+from .models import Subject, Enrollment, Exercise, StudentExerciseResult, Notification
 from .serializers import (
     SubjectSerializer,
     EnrollmentSerializer,
     ExerciseSerializer,
     StudentExerciseResultSerializer,
     CSVUploadSerializer,
+    NotificationSerializer,
 )
 from .permissions import (
     IsOwnerTeacherOrAdmin,
@@ -364,3 +365,52 @@ class MyEnrollmentsView(views.APIView):
                 'stats': e.stats(),
             })
         return Response({'enrollments': items})
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing user notifications.
+    Users can only see their own notifications.
+    """
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return notifications for the current user"""
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+
+    def get_permissions(self):
+        # Users can only list and update their own notifications
+        return super().get_permissions()
+
+    @decorators.action(detail=False, methods=['post'], url_path='mark-all-read')
+    def mark_all_read(self, request):
+        """Mark all notifications as read for current user"""
+        updated = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).update(is_read=True)
+        return Response({
+            'message': f'{updated} notificaciones marcadas como leídas',
+            'updated_count': updated
+        })
+
+    @decorators.action(detail=True, methods=['post'], url_path='mark-read')
+    def mark_read(self, request, pk=None):
+        """Mark a single notification as read"""
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save(update_fields=['is_read'])
+        return Response({
+            'message': 'Notificación marcada como leída',
+            'notification': NotificationSerializer(notification).data
+        })
+
+    @decorators.action(detail=False, methods=['get'], url_path='unread-count')
+    def unread_count(self, request):
+        """Get count of unread notifications"""
+        count = Notification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()
+        return Response({'unread_count': count})

@@ -2,7 +2,7 @@ from typing import Any
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Subject, Enrollment, Exercise, StudentExerciseResult
+from .models import Subject, Enrollment, Exercise, StudentExerciseResult, Notification
 
 User = get_user_model()
 
@@ -154,3 +154,43 @@ class SubjectDashboardSerializer(serializers.Serializer):
     total_exercises = serializers.IntegerField()
     enrollments = EnrollmentStatsSerializer(many=True)
     aggregates = serializers.DictField(child=serializers.FloatField(), allow_empty=True)
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    time_ago = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Notification
+        fields = [
+            'id',
+            'notification_type',
+            'title',
+            'message',
+            'is_read',
+            'link',
+            'created_at',
+            'time_ago'
+        ]
+        read_only_fields = ['created_at']
+    
+    def get_time_ago(self, obj):
+        """Return human-readable time difference"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        now = timezone.now()
+        diff = now - obj.created_at
+        
+        if diff < timedelta(minutes=1):
+            return 'Hace un momento'
+        elif diff < timedelta(hours=1):
+            minutes = int(diff.total_seconds() / 60)
+            return f'Hace {minutes} minuto{"s" if minutes > 1 else ""}'
+        elif diff < timedelta(days=1):
+            hours = int(diff.total_seconds() / 3600)
+            return f'Hace {hours} hora{"s" if hours > 1 else ""}'
+        elif diff < timedelta(days=7):
+            days = diff.days
+            return f'Hace {days} día{"s" if days > 1 else ""}'
+        else:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M')

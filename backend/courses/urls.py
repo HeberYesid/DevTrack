@@ -6,13 +6,15 @@ from .views import (
     ExerciseViewSet,
     StudentExerciseResultViewSet,
     EnrollmentResultsView,
-    MyEnrollmentsView
+    MyEnrollmentsView,
+    NotificationViewSet
 )
 
 router = DefaultRouter()
 router.register(r'subjects', SubjectViewSet, basename='subject')
 router.register(r'exercises', ExerciseViewSet, basename='exercise')
 router.register(r'results', StudentExerciseResultViewSet, basename='result')
+router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('', include(router.urls)),
