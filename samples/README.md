@@ -30,18 +30,21 @@ jairssv@gmail.com,Jair,Sanjuan
 **Propósito:** Cargar resultados de ejercicios de estudiantes
 
 **Campos:**
-- `email` - Email del estudiante inscrito
-- `subject_code` - Código de la materia (ej: MATH101, CS101)
+- `student_email` - Email del estudiante inscrito
 - `exercise_name` - Nombre del ejercicio
 - `status` - Resultado del ejercicio: `GREEN`, `YELLOW`, o `RED`
 
 **Ejemplo:**
 ```csv
-email,subject_code,exercise_name,status
-erickmatoja@gmail.com,MATH101,Ejercicio 1 - Ecuaciones,GREEN
-erickmatoja@gmail.com,MATH101,Ejercicio 2 - Derivadas,YELLOW
-jairssv@gmail.com,MATH101,Ejercicio 1 - Ecuaciones,GREEN
+student_email,exercise_name,status
+erickmatoja@gmail.com,Ejercicio 1 - Ecuaciones,GREEN
+erickmatoja@gmail.com,Ejercicio 2 - Derivadas,YELLOW
+jairssv@gmail.com,Ejercicio 1 - Ecuaciones,GREEN
 ```
+
+**⚠️ Nota Importante:**
+- Los ejercicios se crean **automáticamente** si no existen al subir el CSV
+- También puedes crear ejercicios manualmente desde la página de la materia antes de subir resultados
 
 **Estados Disponibles:**
 - 🟢 **GREEN** - Ejercicio completado exitosamente
