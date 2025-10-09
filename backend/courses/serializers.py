@@ -101,9 +101,23 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 
 class ExerciseSerializer(serializers.ModelSerializer):
+    deadline_status = serializers.SerializerMethodField()
+    days_until_deadline = serializers.SerializerMethodField()
+    is_overdue = serializers.SerializerMethodField()
+    
     class Meta:
         model = Exercise
-        fields = ['id', 'subject', 'name', 'order']
+        fields = ['id', 'subject', 'name', 'order', 'deadline', 'description', 
+                  'deadline_status', 'days_until_deadline', 'is_overdue']
+    
+    def get_deadline_status(self, obj):
+        return obj.deadline_status()
+    
+    def get_days_until_deadline(self, obj):
+        return obj.days_until_deadline()
+    
+    def get_is_overdue(self, obj):
+        return obj.is_overdue()
 
 
 class StudentExerciseResultSerializer(serializers.ModelSerializer):

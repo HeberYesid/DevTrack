@@ -69,19 +69,45 @@ class Enrollment(models.Model):
             'grade': grade,
             'semaphore': semaphore,
         }
-
-
 class Exercise(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='exercises')
     name = models.CharField(max_length=200)
     order = models.PositiveIntegerField(default=0)
+    deadline = models.DateTimeField(null=True, blank=True, help_text="Fecha límite de entrega")
+    description = models.TextField(blank=True, null=True, help_text="Descripción del ejercicio")
 
     class Meta:
-        unique_together = ('subject', 'name')
         ordering = ['order', 'id']
 
     def __str__(self) -> str:
-        return f"{self.subject.code} | {self.name}"
+        return f"{self.subject.code} - {self.name}"
+    
+    def is_overdue(self):
+        """Check if exercise deadline has passed"""
+        if not self.deadline:
+            return False
+        from django.utils import timezone
+        return timezone.now() > self.deadline
+    
+    def days_until_deadline(self):
+        """Return number of days until deadline (negative if overdue)"""
+        if not self.deadline:
+            return None
+        from django.utils import timezone
+        delta = self.deadline - timezone.now()
+        return delta.days
+    
+    def deadline_status(self):
+        """Return deadline status: 'OVERDUE', 'URGENT' (<=3 days), 'UPCOMING', or 'NONE'"""
+        if not self.deadline:
+            return 'NONE'
+        days = self.days_until_deadline()
+        if days < 0:
+            return 'OVERDUE'
+        elif days <= 3:
+            return 'URGENT'
+        else:
+            return 'UPCOMING'
 
 
 class StudentExerciseResult(models.Model):
