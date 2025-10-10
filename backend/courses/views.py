@@ -291,7 +291,7 @@ class EnrollmentResultsView(viewsets.ViewSet):
 class StudentExerciseResultViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing individual student exercise results.
-    Allows teachers and admins to update result status.
+    Allows teachers and admins to create and update result status.
     """
     serializer_class = StudentExerciseResultSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -317,6 +317,60 @@ class StudentExerciseResultViewSet(viewsets.ModelViewSet):
             return qs.filter(enrollment__subject__teacher=user)
         # Students can only see their own results
         return qs.filter(enrollment__student=user)
+    
+    def create(self, request, *args, **kwargs):
+        """Create a new result for a student-exercise pair"""
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        # Only teachers and admins can create results
+        if user_role not in ['ADMIN', 'TEACHER']:
+            return Response({'detail': 'Solo profesores y administradores pueden crear resultados.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get enrollment and exercise from request
+        enrollment_id = request.data.get('enrollment')
+        exercise_id = request.data.get('exercise')
+        result_status = request.data.get('status')
+        comment = request.data.get('comment', '')
+        
+        if not enrollment_id or not exercise_id or not result_status:
+            return Response({'detail': 'enrollment, exercise y status son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            enrollment = Enrollment.objects.select_related('subject').get(id=enrollment_id)
+            exercise = Exercise.objects.get(id=exercise_id)
+        except Enrollment.DoesNotExist:
+            return Response({'detail': 'Inscripción no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exercise.DoesNotExist:
+            return Response({'detail': 'Ejercicio no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verify the exercise belongs to the same subject as enrollment
+        if exercise.subject_id != enrollment.subject_id:
+            return Response({'detail': 'El ejercicio no pertenece a la materia del estudiante.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Teachers can only create results for their own subjects
+        if user_role == 'TEACHER':
+            if enrollment.subject.teacher_id != user.id:
+                return Response({'detail': 'No tienes permiso para crear resultados en esta materia.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if result already exists
+        existing = StudentExerciseResult.objects.filter(enrollment=enrollment, exercise=exercise).first()
+        if existing:
+            return Response({
+                'detail': f'Ya existe un resultado para este estudiante y ejercicio. Usa PATCH para actualizarlo.',
+                'existing_result_id': existing.id
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create the result
+        result = StudentExerciseResult.objects.create(
+            enrollment=enrollment,
+            exercise=exercise,
+            status=result_status,
+            comment=comment
+        )
+        
+        serializer = self.get_serializer(result)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         """Update a result status"""
