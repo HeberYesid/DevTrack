@@ -10,9 +10,12 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    is_verified = serializers.BooleanField(source='is_email_verified', read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
+    
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_email_verified']
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_email_verified', 'is_verified', 'is_active']
 
 
 class RegisterSerializer(serializers.ModelSerializer):

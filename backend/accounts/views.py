@@ -119,3 +119,70 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class ProfileView(APIView):
+    """View para obtener y actualizar el perfil del usuario autenticado"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Obtener perfil del usuario"""
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        """Actualizar perfil del usuario"""
+        user = request.user
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        # Solo permitir actualizar first_name y last_name
+        allowed_fields = ['first_name', 'last_name']
+        for field in request.data.keys():
+            if field not in allowed_fields:
+                return Response(
+                    {'detail': f'No se permite actualizar el campo: {field}'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        serializer.save()
+        return Response(serializer.data)
+
+
+class ChangePasswordView(APIView):
+    """View para cambiar la contraseña del usuario autenticado"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not current_password or not new_password:
+            return Response(
+                {'detail': 'Se requieren current_password y new_password'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verificar contraseña actual
+        if not user.check_password(current_password):
+            return Response(
+                {'current_password': ['La contraseña actual es incorrecta']}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validar nueva contraseña
+        if len(new_password) < 8:
+            return Response(
+                {'new_password': ['La contraseña debe tener al menos 8 caracteres']}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Cambiar contraseña
+        user.set_password(new_password)
+        user.save()
+
+        return Response(
+            {'message': 'Contraseña cambiada exitosamente'}, 
+            status=status.HTTP_200_OK
+        )

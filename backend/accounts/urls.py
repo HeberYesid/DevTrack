@@ -7,7 +7,9 @@ from .views import (
     VerifyCodeView, 
     ResendCodeView, 
     MeView,
-    RegisterTeacherView
+    RegisterTeacherView,
+    ProfileView,
+    ChangePasswordView
 )
 
 urlpatterns = [
@@ -18,5 +20,7 @@ urlpatterns = [
     path('verify-code/', VerifyCodeView.as_view(), name='verify-code'),
     path('resend-code/', ResendCodeView.as_view(), name='resend-code'),
     path('me/', MeView.as_view(), name='me'),
+    path('profile/', ProfileView.as_view(), name='profile'),
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
