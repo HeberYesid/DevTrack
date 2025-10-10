@@ -96,6 +96,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
                 email=email,
                 defaults={'username': email, 'first_name': first_name, 'last_name': last_name, 'role': 'STUDENT', 'is_active': True}
             )
+            
             # update names if provided
             update_fields = []
             if first_name and student.first_name != first_name:
@@ -414,3 +415,123 @@ class NotificationViewSet(viewsets.ModelViewSet):
             is_read=False
         ).count()
         return Response({'unread_count': count})
+
+
+class StudentDashboardView(views.APIView):
+    """Dashboard personalizado para estudiantes"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Obtener dashboard del estudiante con:
+        - Resumen de resultados (verde, amarillo, rojo)
+        - Progreso por materia
+        - Ejercicios pendientes
+        - Estadísticas generales
+        """
+        user = request.user
+        
+        # Verificar que sea estudiante
+        if user.role != 'STUDENT':
+            return Response(
+                {'error': 'Este endpoint es solo para estudiantes'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Obtener todas las inscripciones del estudiante
+        enrollments = Enrollment.objects.filter(student=user).select_related('subject')
+        
+        # Resumen general
+        all_results = StudentExerciseResult.objects.filter(enrollment__student=user)
+        total_results = all_results.count()
+        green_count = all_results.filter(status='GREEN').count()
+        yellow_count = all_results.filter(status='YELLOW').count()
+        red_count = all_results.filter(status='RED').count()
+        
+        # Calcular porcentaje de éxito
+        success_rate = round((green_count / total_results * 100), 1) if total_results > 0 else 0
+        
+        # Progreso por materia
+        subjects_progress = []
+        for enrollment in enrollments:
+            subject = enrollment.subject
+            
+            # Obtener todos los ejercicios de la materia
+            all_exercises = Exercise.objects.filter(subject=subject)
+            total_exercises = all_exercises.count()
+            
+            # Obtener resultados del estudiante en esta materia
+            results = StudentExerciseResult.objects.filter(enrollment=enrollment)
+            completed_exercises = results.count()
+            
+            # Contar por estado
+            green = results.filter(status='GREEN').count()
+            yellow = results.filter(status='YELLOW').count()
+            red = results.filter(status='RED').count()
+            
+            # Calcular porcentaje de completado
+            completion_rate = round((completed_exercises / total_exercises * 100), 1) if total_exercises > 0 else 0
+            
+            # Ejercicios pendientes de esta materia
+            completed_exercise_ids = results.values_list('exercise_id', flat=True)
+            pending_exercises = all_exercises.exclude(id__in=completed_exercise_ids)
+            
+            subjects_progress.append({
+                'subject_id': subject.id,
+                'subject_name': subject.name,
+                'subject_code': subject.code,
+                'total_exercises': total_exercises,
+                'completed_exercises': completed_exercises,
+                'pending_exercises': pending_exercises.count(),
+                'completion_rate': completion_rate,
+                'green_count': green,
+                'yellow_count': yellow,
+                'red_count': red,
+                'success_rate': round((green / completed_exercises * 100), 1) if completed_exercises > 0 else 0
+            })
+        
+        # Ejercicios pendientes (todos)
+        all_enrolled_subjects = enrollments.values_list('subject_id', flat=True)
+        all_subject_exercises = Exercise.objects.filter(subject_id__in=all_enrolled_subjects).select_related('subject')
+        completed_exercise_ids = all_results.values_list('exercise_id', flat=True)
+        pending_exercises_queryset = all_subject_exercises.exclude(id__in=completed_exercise_ids).order_by('-id')[:10]
+        
+        pending_exercises = []
+        for exercise in pending_exercises_queryset:
+            pending_exercises.append({
+                'id': exercise.id,
+                'name': exercise.name,
+                'subject_name': exercise.subject.name,
+                'subject_code': exercise.subject.code,
+                'subject_id': exercise.subject.id,
+                'deadline': exercise.deadline.strftime('%d/%m/%Y %H:%M') if exercise.deadline else None
+            })
+        
+        # Últimos resultados
+        recent_results = all_results.select_related('exercise__subject', 'enrollment').order_by('-created_at')[:5]
+        recent_results_data = []
+        for result in recent_results:
+            recent_results_data.append({
+                'id': result.id,
+                'exercise_name': result.exercise.name,
+                'subject_name': result.enrollment.subject.name,
+                'status': result.status,
+                'comment': result.comment or '',
+                'created_at': result.created_at.strftime('%d/%m/%Y %H:%M')
+            })
+        
+        # Respuesta
+        return Response({
+            'summary': {
+                'total_results': total_results,
+                'green_count': green_count,
+                'yellow_count': yellow_count,
+                'red_count': red_count,
+                'success_rate': success_rate,
+                'total_subjects': enrollments.count(),
+                'total_pending': pending_exercises_queryset.count()
+            },
+            'subjects_progress': subjects_progress,
+            'pending_exercises': pending_exercises,
+            'recent_results': recent_results_data
+        })

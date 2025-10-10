@@ -7,7 +7,8 @@ from .views import (
     StudentExerciseResultViewSet,
     EnrollmentResultsView,
     MyEnrollmentsView,
-    NotificationViewSet
+    NotificationViewSet,
+    StudentDashboardView
 )
 
 router = DefaultRouter()
@@ -20,4 +21,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('enrollments/<int:pk>/results/', EnrollmentResultsView.as_view({'get': 'list_results'}), name='enrollment-results'),
     path('my-enrollments/', MyEnrollmentsView.as_view(), name='my-enrollments'),
+    path('student-dashboard/', StudentDashboardView.as_view(), name='student-dashboard'),
 ]
