@@ -62,12 +62,17 @@ class Enrollment(models.Model):
                 semaphore = 'RED'
 
         return {
+            'total_exercises': total,
+            'green_count': green,
+            'yellow_count': yellow,
+            'red_count': red,
+            'grade': grade,
+            'semaphore': semaphore,
+            # Keep old keys for backwards compatibility
             'total': total,
             'green': green,
             'yellow': yellow,
             'red': red,
-            'grade': grade,
-            'semaphore': semaphore,
         }
 class Exercise(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='exercises')
