@@ -9,7 +9,9 @@ from .views import (
     MeView,
     RegisterTeacherView,
     ProfileView,
-    ChangePasswordView
+    ChangePasswordView,
+    ForgotPasswordView,
+    ResetPasswordView
 )
 
 urlpatterns = [
@@ -22,5 +24,7 @@ urlpatterns = [
     path('me/', MeView.as_view(), name='me'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

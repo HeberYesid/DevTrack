@@ -7,6 +7,8 @@ from rest_framework import status, permissions
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from django.contrib.auth import get_user_model
+from datetime import timedelta
+import random
 
 from .models import EmailVerificationToken, EmailVerificationCode
 from .serializers import (
@@ -204,5 +206,131 @@ class ChangePasswordView(APIView):
 
         return Response(
             {'message': 'Contraseña cambiada exitosamente'}, 
+            status=status.HTTP_200_OK
+        )
+
+
+@method_decorator(ratelimit_email, name='post')
+class ForgotPasswordView(APIView):
+    """Envía un código de verificación para recuperar contraseña"""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        
+        if not email:
+            return Response(
+                {'detail': 'El email es requerido'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # Por seguridad, no revelamos si el email existe o no
+            return Response(
+                {'message': 'Si el email existe, recibirás un código de verificación'}, 
+                status=status.HTTP_200_OK
+            )
+        
+        # Invalidar códigos anteriores
+        EmailVerificationCode.objects.filter(
+            user=user, 
+            code_type='PASSWORD_RESET',
+            is_used=False
+        ).update(is_used=True)
+        
+        # Crear nuevo código de verificación
+        code = f"{random.randint(100000, 999999)}"
+        expiry = timezone.now() + timedelta(minutes=15)
+        
+        verification_code = EmailVerificationCode.objects.create(
+            user=user,
+            code=code,
+            code_type='PASSWORD_RESET',
+            expires_at=expiry
+        )
+        
+        # Enviar email
+        send_verification_code_email(user.email, verification_code.code, is_password_reset=True)
+        
+        return Response(
+            {'message': 'Si el email existe, recibirás un código de verificación'}, 
+            status=status.HTTP_200_OK
+        )
+
+
+@method_decorator(ratelimit_strict_auth, name='post')
+class ResetPasswordView(APIView):
+    """Restablece la contraseña usando el código de verificación"""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        code = request.data.get('code', '').strip()
+        new_password = request.data.get('new_password', '')
+        
+        if not all([email, code, new_password]):
+            return Response(
+                {'detail': 'Email, código y nueva contraseña son requeridos'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar longitud de contraseña
+        if len(new_password) < 8:
+            return Response(
+                {'detail': 'La contraseña debe tener al menos 8 caracteres'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {'detail': 'Código inválido o expirado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Buscar código válido
+        try:
+            verification_code = EmailVerificationCode.objects.get(
+                user=user,
+                code=code,
+                code_type='PASSWORD_RESET',
+                is_used=False
+            )
+            
+            if not verification_code.is_valid():
+                return Response(
+                    {'detail': 'El código ha expirado. Solicita uno nuevo'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+        except EmailVerificationCode.DoesNotExist:
+            return Response(
+                {'detail': 'Código inválido o expirado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Cambiar contraseña
+        user.set_password(new_password)
+        user.save()
+        
+        # Marcar código como usado
+        verification_code.mark_used()
+        
+        # Crear notificación de seguridad
+        from courses.models import Notification
+        
+        Notification.objects.create(
+            user=user,
+            notification_type='GENERAL',
+            title='🔐 Contraseña restablecida',
+            message=f'Tu contraseña fue restablecida exitosamente el {timezone.now().strftime("%d/%m/%Y a las %H:%M")}. Si no fuiste tú, contacta al administrador inmediatamente.',
+            is_read=False
+        )
+        
+        return Response(
+            {'message': 'Contraseña restablecida exitosamente. Ya puedes iniciar sesión'}, 
             status=status.HTTP_200_OK
         )

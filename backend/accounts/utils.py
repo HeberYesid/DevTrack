@@ -32,45 +32,53 @@ def send_verification_email(user: User) -> str:
     return token
 
 
-def send_verification_code_email(user: User) -> str:
+def send_verification_code_email(email: str, code: str, is_password_reset: bool = False) -> None:
     """
-    Crea un código de verificación de 6 dígitos y lo envía por email.
+    Envía un código de verificación por email.
+    Puede ser para verificación de cuenta o recuperación de contraseña.
     También muestra el código en la consola del servidor.
-    Retorna el código para propósitos de logging/testing.
     """
-    code = user.create_email_verification_code()
-    
     # Mostrar el código en la consola del servidor
+    code_type = "RECUPERACIÓN DE CONTRASEÑA" if is_password_reset else "VERIFICACIÓN DE CUENTA"
     print(f"\n{'='*50}")
-    print(f"🔐 CÓDIGO DE VERIFICACIÓN GENERADO")
+    print(f"🔐 CÓDIGO DE {code_type}")
     print(f"{'='*50}")
-    print(f"Usuario: {user.email}")
+    print(f"Email: {email}")
     print(f"Código: {code}")
     print(f"Válido por: 15 minutos")
     print(f"{'='*50}\n")
 
-    subject = 'Código de verificación - DevTrack'
-    message = (
-        f"Hola {user.first_name or user.email},\n\n"
-        f"Tu código de verificación es: {code}\n\n"
-        f"Este código es válido por 15 minutos.\n\n"
-        f"Si no solicitaste este código, ignora este mensaje.\n\n"
-        f"Equipo DevTrack"
-    )
+    if is_password_reset:
+        subject = 'Recuperación de contraseña - DevTrack'
+        message = (
+            f"Hola,\n\n"
+            f"Has solicitado recuperar tu contraseña en DevTrack.\n\n"
+            f"Tu código de verificación es: {code}\n\n"
+            f"Este código es válido por 15 minutos.\n\n"
+            f"Si no solicitaste recuperar tu contraseña, ignora este mensaje.\n\n"
+            f"Equipo DevTrack"
+        )
+    else:
+        subject = 'Código de verificación - DevTrack'
+        message = (
+            f"Hola,\n\n"
+            f"Tu código de verificación es: {code}\n\n"
+            f"Este código es válido por 15 minutos.\n\n"
+            f"Si no solicitaste este código, ignora este mensaje.\n\n"
+            f"Equipo DevTrack"
+        )
 
     try:
         send_mail(
             subject=subject,
             message=message,
             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost'),
-            recipient_list=[user.email],
+            recipient_list=[email],
             fail_silently=False,
         )
-        print(f"✅ Email enviado exitosamente a {user.email}")
+        print(f"✅ Email enviado exitosamente a {email}")
     except Exception as e:
-        print(f"❌ Error enviando email a {user.email}: {str(e)}")
-    
-    return code
+        print(f"❌ Error enviando email a {email}: {str(e)}")
 
 
 def send_teacher_invitation_email(invitation) -> None:

@@ -40,8 +40,8 @@ class EmailVerificationTokenAdmin(admin.ModelAdmin):
 
 @admin.register(EmailVerificationCode)
 class EmailVerificationCodeAdmin(admin.ModelAdmin):
-    list_display = ('user', 'code', 'created_at', 'expires_at', 'used', 'is_valid')
-    list_filter = ('used', 'created_at')
+    list_display = ('user', 'code', 'code_type', 'created_at', 'expires_at', 'is_used', 'is_valid')
+    list_filter = ('is_used', 'code_type', 'created_at')
     search_fields = ('user__email', 'code')
     readonly_fields = ('created_at',)
     
