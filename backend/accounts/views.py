@@ -334,3 +334,45 @@ class ResetPasswordView(APIView):
             {'message': 'Contraseña restablecida exitosamente. Ya puedes iniciar sesión'}, 
             status=status.HTTP_200_OK
         )
+
+
+class CheckUserExistsView(APIView):
+    """
+    Vista para verificar si un usuario existe en la plataforma por email.
+    Útil para profesores que quieren saber si un estudiante ya tiene cuenta.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Verifica si existe un usuario con el email proporcionado.
+        Retorna información básica del usuario si existe.
+        """
+        email = request.query_params.get('email', '').strip().lower()
+        
+        if not email:
+            return Response(
+                {'detail': 'El parámetro email es requerido'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            # Retornar información básica del usuario
+            return Response({
+                'exists': True,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'role': getattr(user, 'role', 'STUDENT'),
+                'is_active': user.is_active,
+                'is_verified': user.is_verified if hasattr(user, 'is_verified') else True
+            }, status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            return Response(
+                {'exists': False, 'detail': 'Usuario no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+

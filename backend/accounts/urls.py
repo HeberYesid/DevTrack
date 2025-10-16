@@ -11,7 +11,8 @@ from .views import (
     ProfileView,
     ChangePasswordView,
     ForgotPasswordView,
-    ResetPasswordView
+    ResetPasswordView,
+    CheckUserExistsView
 )
 
 urlpatterns = [
@@ -26,5 +27,6 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
+    path('check-user-exists/', CheckUserExistsView.as_view(), name='check-user-exists'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
