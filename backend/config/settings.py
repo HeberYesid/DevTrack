@@ -146,3 +146,39 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'DevTrack <no-reply@devtrac
 # Frontend/API base urls (for emails)
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://127.0.0.1:8000')
+
+# Cache configuration for rate limiting
+# Using LocMemCache for development (in production, use Redis or Memcached)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'devtrack-ratelimit',
+    }
+}
+
+# Rate Limiting Configuration
+# django-ratelimit uses this cache backend
+RATELIMIT_ENABLE = os.getenv('RATELIMIT_ENABLE', 'True') == 'True'
+RATELIMIT_USE_CACHE = 'default'
+
+# Additional Security Settings (Production Ready)
+# HTTPS/SSL Settings - Uncomment in production with HTTPS
+# SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
+# SECURE_HSTS_SECONDS = 31536000  # 1 year
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_PRELOAD = True
+
+# Cookie Security Settings
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'Strict' if same-origin only
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# In production with HTTPS, uncomment:
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
+
+# Content Security
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'  # Already set by XFrameOptionsMiddleware

@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -17,10 +18,12 @@ from .serializers import (
     RegisterTeacherSerializer
 )
 from .utils import send_verification_code_email
+from .ratelimit import ratelimit_auth, ratelimit_strict_auth, ratelimit_email
 
 User = get_user_model()
 
 
+@method_decorator(ratelimit_auth, name='post')
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -31,6 +34,7 @@ class RegisterView(APIView):
         return Response({'message': 'Registro exitoso. Hemos enviado un código de verificación de 6 dígitos a tu correo.'}, status=status.HTTP_201_CREATED)
 
 
+@method_decorator(ratelimit_auth, name='post')
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -60,6 +64,7 @@ class VerifyEmailView(APIView):
         return Response({'message': 'Correo verificado exitosamente. Ya puedes iniciar sesión.'}, status=status.HTTP_200_OK)
 
 
+@method_decorator(ratelimit_strict_auth, name='post')
 class VerifyCodeView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -84,6 +89,7 @@ class VerifyCodeView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+@method_decorator(ratelimit_email, name='post')
 class ResendCodeView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -102,6 +108,7 @@ class ResendCodeView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+@method_decorator(ratelimit_auth, name='post')
 class RegisterTeacherView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -149,6 +156,7 @@ class ProfileView(APIView):
         return Response(serializer.data)
 
 
+@method_decorator(ratelimit_strict_auth, name='post')
 class ChangePasswordView(APIView):
     """View para cambiar la contraseña del usuario autenticado"""
     permission_classes = [permissions.IsAuthenticated]
