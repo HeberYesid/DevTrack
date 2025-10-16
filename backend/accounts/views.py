@@ -190,6 +190,18 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save()
 
+        # Crear notificación de seguridad
+        from courses.models import Notification
+        from django.utils import timezone
+        
+        Notification.objects.create(
+            user=user,
+            notification_type='GENERAL',
+            title=' Contraseña actualizada',
+            message=f'Tu contraseña fue cambiada exitosamente el {timezone.now().strftime("%d/%m/%Y a las %H:%M")}. Si no fuiste tú, contacta al administrador inmediatamente.',
+            is_read=False
+        )
+
         return Response(
             {'message': 'Contraseña cambiada exitosamente'}, 
             status=status.HTTP_200_OK
