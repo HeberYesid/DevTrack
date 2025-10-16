@@ -57,6 +57,7 @@ class TeacherInvitationCodeAdmin(admin.ModelAdmin):
     list_filter = ('used', 'created_at')
     search_fields = ('email', 'code')
     readonly_fields = ('created_at', 'used_at', 'used_by', 'code')
+    exclude = ('created_by',)  # Ocultar el campo created_by del formulario
     actions = ['send_invitation_emails']
     
     def is_valid(self, obj):
