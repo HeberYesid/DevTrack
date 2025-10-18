@@ -13,7 +13,7 @@ Cloudflare Turnstile has been integrated into both the login and registration fo
 #### Backend (.env)
 Add the following to your backend `.env` file:
 ```
-TURNSTILE_SECRET_KEY=0x4AAAAAAB195dF8QdRbAuGMD3aVvy8Q_V4
+TURNSTILE_SECRET_KEY=changeme
 ```
 
 #### Frontend (.env)
