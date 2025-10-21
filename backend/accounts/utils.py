@@ -32,12 +32,17 @@ def send_verification_email(user: User) -> str:
     return token
 
 
-def send_verification_code_email(email: str, code: str, is_password_reset: bool = False) -> None:
+def send_verification_code_email(user: User, is_password_reset: bool = False) -> str:
     """
-    Envía un código de verificación por email.
+    Crea y envía un código de verificación por email.
     Puede ser para verificación de cuenta o recuperación de contraseña.
     También muestra el código en la consola del servidor.
+    Retorna el código generado.
     """
+    # Crear el código de verificación
+    code = user.create_email_verification_code()
+    email = user.email
+    
     # Mostrar el código en la consola del servidor
     code_type = "RECUPERACIÓN DE CONTRASEÑA" if is_password_reset else "VERIFICACIÓN DE CUENTA"
     print(f"\n{'='*50}")
@@ -79,6 +84,8 @@ def send_verification_code_email(email: str, code: str, is_password_reset: bool 
         print(f"✅ Email enviado exitosamente a {email}")
     except Exception as e:
         print(f"❌ Error enviando email a {email}: {str(e)}")
+    
+    return code
 
 
 def send_teacher_invitation_email(invitation) -> None:

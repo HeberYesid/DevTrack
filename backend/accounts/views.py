@@ -233,26 +233,8 @@ class ForgotPasswordView(APIView):
                 status=status.HTTP_200_OK
             )
         
-        # Invalidar códigos anteriores
-        EmailVerificationCode.objects.filter(
-            user=user, 
-            code_type='PASSWORD_RESET',
-            is_used=False
-        ).update(is_used=True)
-        
-        # Crear nuevo código de verificación
-        code = f"{random.randint(100000, 999999)}"
-        expiry = timezone.now() + timedelta(minutes=15)
-        
-        verification_code = EmailVerificationCode.objects.create(
-            user=user,
-            code=code,
-            code_type='PASSWORD_RESET',
-            expires_at=expiry
-        )
-        
-        # Enviar email
-        send_verification_code_email(user.email, verification_code.code, is_password_reset=True)
+        # Enviar email con código de verificación
+        send_verification_code_email(user, is_password_reset=True)
         
         return Response(
             {'message': 'Si el email existe, recibirás un código de verificación'}, 

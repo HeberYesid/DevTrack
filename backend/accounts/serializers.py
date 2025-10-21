@@ -134,7 +134,7 @@ class VerifyCodeSerializer(serializers.Serializer):
         verification_code = EmailVerificationCode.objects.filter(
             user=user, 
             code=code, 
-            used=False
+            is_used=False
         ).first()
 
         if not verification_code:

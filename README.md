@@ -28,7 +28,10 @@ Visita el [índice completo de documentación](./docs/README.md) para más detal
 
 ```bash
 cd backend
-python -m venv .venv
+python -m venv .venv 
+#Escoger una de las dos
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass # saltar el bloqueo de scripts una sola vez
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned # deshabilitar permanente para el usuario
 . .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
@@ -42,6 +45,10 @@ copy .env.example .env  # Windows
 Edita `backend/.env` y define:
 
 - `DJANGO_SECRET_KEY`
+```bash
+
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())" #Generar secret key django
+```
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`
 - `CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
 - `FRONTEND_URL=http://localhost:5173`
