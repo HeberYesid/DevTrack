@@ -278,3 +278,24 @@ git push -u origin main
 - El sistema de verificación por código de 6 dígitos es obligatorio para nuevos registros.
 - Los códigos se muestran en la consola del servidor para facilitar el desarrollo.
 - Para producción, asegúrate de configurar un proveedor de email real (Gmail, SendGrid, etc.).
+
+
+
+
+
+Consultas SQL dentro de docker
+docker-compose exec db mysql -u devtrack -pdevtrack_password devtrack -e "consulta a ajecutar;"
+-- Ver usuarios
+SELECT id, email, first_name, last_name, role FROM accounts_user;
+
+-- Ver materias
+SELECT id, name, teacher_id FROM courses_subject;
+
+-- Ver inscripciones
+SELECT s.name, u.email, e.status 
+FROM courses_enrollment e
+JOIN courses_subject s ON e.subject_id = s.id
+JOIN accounts_user u ON e.student_id = u.id;
+
+-- Contar por rol
+SELECT role, COUNT(*) FROM accounts_user GROUP BY role;
