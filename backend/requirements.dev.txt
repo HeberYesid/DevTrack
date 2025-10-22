@@ -1,0 +1,18 @@
+# Dependencias adicionales para desarrollo
+# No son necesarias en producción
+
+# ==================================
+# Debugging y desarrollo
+# ==================================
+ipython==8.20.0
+django-debug-toolbar==4.3.0
+django-extensions==3.2.3
+
+# ==================================
+# Testing (ya incluidos en requirements.txt)
+# ==================================
+# pytest==8.0.0
+# pytest-django==4.8.0
+# pytest-cov==4.1.0
+# factory-boy==3.3.0
+# faker==22.6.0

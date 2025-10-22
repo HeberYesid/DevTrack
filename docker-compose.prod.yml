@@ -1,0 +1,76 @@
+# ==============================================
+# DevTrack - Production Overrides
+# Usado con: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ==============================================
+
+services:
+  # ==============================================
+  # Backend Production
+  # ==============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DJANGO_DEBUG: "False"
+    volumes:
+      # Solo montar volúmenes de archivos estáticos
+      - static-files:/app/staticfiles
+      - media-files:/app/mediafiles
+    # NO montar código fuente en producción
+    command: gunicorn config.wsgi:application --config gunicorn.conf.py
+
+  # ==============================================
+  # Frontend Production
+  # ==============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
+    # NO montar código fuente en producción
+    # Puerto 80 para producción (nginx)
+    ports:
+      - "80:80"
+
+  # ==============================================
+  # Database Production
+  # ==============================================
+  db:
+    # En producción, NO exponer puerto públicamente
+    # Comentar el ports para que solo sea accesible internamente
+    # ports:
+    #   - "3306:3306"
+    
+    # Configurar para mejor performance
+    command: --default-authentication-plugin=mysql_native_password
+             --character-set-server=utf8mb4
+             --collation-server=utf8mb4_unicode_ci
+             --max_connections=1000
+             --innodb_buffer_pool_size=256M
+
+# ==============================================
+# Opcional: Nginx como Reverse Proxy
+# Descomentar si quieres usar Nginx delante del stack
+# ==============================================
+#   nginx:
+#     image: nginx:alpine
+#     container_name: devtrack-nginx
+#     restart: unless-stopped
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     volumes:
+#       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+#       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+#       - static-files:/usr/share/nginx/html/static:ro
+#       - media-files:/usr/share/nginx/html/media:ro
+#       # Para HTTPS, descomentar:
+#       # - ./nginx/ssl:/etc/nginx/ssl:ro
+#     depends_on:
+#       - backend
+#       - frontend
+#     networks:
+#       - devtrack-net

@@ -16,6 +16,36 @@ Bienvenido a la documentación del proyecto DevTrack. Esta carpeta contiene toda
 
 - **[TURNSTILE_SETUP.md](./TURNSTILE_SETUP.md)** - Configuración de Cloudflare Turnstile (CAPTCHA)
 - **[TESTING.md](./TESTING.md)** - Guía de testing y pruebas del sistema
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - 🆘 Solución de problemas comunes
+  - Problemas al trabajar en diferentes máquinas
+  - Configuración de PowerShell en Windows
+  - Errores de base de datos y dependencias
+  - Checklist de configuración
+  - Recomendaciones para sincronización
+
+### 🐳 Docker y Contenerización
+
+- **[DOCKER_PLAN.md](./DOCKER_PLAN.md)** - 📋 Plan completo de contenerización
+  - Arquitectura de contenedores
+  - Dockerfiles para backend y frontend
+  - Docker Compose para desarrollo y producción
+  - Scripts de automatización
+  - Guía de despliegue
+  - Estimación de tiempo: 2-3 días
+
+- **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** - 🚀 Guía de configuración de Docker
+  - Pre-requisitos e instalación
+  - Configuración inicial
+  - Primer uso y comandos comunes
+  - Desarrollo y producción
+  - Solución de problemas comunes
+
+- **[DOCKER_TROUBLESHOOTING.md](./DOCKER_TROUBLESHOOTING.md)** - 🆘 Troubleshooting específico de Docker
+  - Problemas de Docker Desktop
+  - Errores de build
+  - Problemas de contenedores
+  - Networking y volúmenes
+  - Comandos de diagnóstico
 
 ### 🎨 Sistema de Temas
 
@@ -100,7 +130,10 @@ DevTrack/
    - Backend: Instala dependencias con `pip install -r requirements.txt`
    - Frontend: Instala dependencias con `npm install`
 
-3. **Iniciar el desarrollo:**
+3. **¿Problemas de configuración?**
+   - 🆘 Revisa [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) para soluciones comunes
+
+4. **Iniciar el desarrollo:**
    ```bash
    # Backend
    cd backend
@@ -128,4 +161,4 @@ Si añades una nueva funcionalidad o fix importante:
 
 ---
 
-**Última actualización:** 18 de Octubre, 2025
+**Última actualización:** 21 de Octubre, 2025

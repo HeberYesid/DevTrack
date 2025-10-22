@@ -1,0 +1,99 @@
+# ==============================================
+# DevTrack - Docker Compose Configuration
+# Configuración base para todos los entornos
+# ==============================================
+# Nota: 'version' ya no es necesario en Docker Compose v2+
+
+services:
+  # ==============================================
+  # MySQL Database
+  # ==============================================
+  db:
+    image: mysql:8.0
+    container_name: devtrack-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-devtrack}
+      MYSQL_USER: ${DB_USER:-devtrack}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-devtrack_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+      TZ: America/Bogota
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - devtrack-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ==============================================
+  # Django Backend
+  # ==============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: devtrack-backend
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      # Sobrescribir DB_HOST para apuntar al servicio de MySQL
+      DB_HOST: db
+      DB_PORT: 3306
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - static-files:/app/staticfiles
+      - media-files:/app/mediafiles
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - devtrack-net
+
+  # ==============================================
+  # React Frontend
+  # ==============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-0x4AAAAAAB195XyO5y089iC-}
+    container_name: devtrack-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - devtrack-net
+
+# ==============================================
+# Networks
+# ==============================================
+networks:
+  devtrack-net:
+    driver: bridge
+    name: devtrack-network
+
+# ==============================================
+# Volumes (Persistent Storage)
+# ==============================================
+volumes:
+  mysql-data:
+    driver: local
+    name: devtrack-mysql-data
+  static-files:
+    driver: local
+    name: devtrack-static-files
+  media-files:
+    driver: local
+    name: devtrack-media-files

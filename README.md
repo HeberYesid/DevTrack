@@ -2,19 +2,53 @@
 
 Aplicación web completa (backend Django + frontend React) para gestión académica: materias, inscripciones, ejercicios y resultados, dashboard, exportes y notificaciones in‑app.
 
-## 📚 Documentación
+## � Inicio Rápido
+
+### Con Docker (Recomendado) 🐳
+
+```powershell
+# 1. Clonar repositorio
+git clone https://github.com/HeberYesid/DevTrack.git
+cd DevTrack
+
+# 2. Iniciar con Docker
+.\scripts\docker-dev.ps1
+```
+
+¡Listo! Abre http://localhost:5173
+
+**Ventajas de Docker:**
+- ✅ Setup en un solo comando
+- ✅ Funciona en cualquier máquina
+- ✅ No más problemas de versiones o configuración
+
+Ver: **[Guía de Docker](./DOCKER_README.md)** | **[Setup completo](./docs/DOCKER_SETUP.md)**
+
+### Sin Docker (Manual)
+
+Ver instrucciones detalladas más abajo ↓
+
+---
+
+## �📚 Documentación
 
 Toda la documentación técnica, guías de implementación y referencias del sistema están organizadas en la carpeta **[`docs/`](./docs/)**:
 
 - **[API Guide](./docs/API_GUIDE.md)** - Guía completa para usar el backend como API REST
+- **[Docker Setup](./docs/DOCKER_SETUP.md)** - 🐳 Guía completa de Docker
 - **[Theme System](./docs/THEME_SYSTEM_DOCS.md)** - Sistema de temas (light/dark mode)
 - **[Role-Based Views](./docs/ROLE_BASED_VIEWS.md)** - Vistas basadas en roles
 - **[Testing Guide](./docs/TESTING.md)** - Guía de testing
+- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Solución de problemas
 - Y mucho más...
 
 Visita el [índice completo de documentación](./docs/README.md) para más detalles.
 
-## Requisitos
+---
+
+## ⚙️ Setup Manual (Sin Docker)
+
+### Requisitos
 
 - Python 3.11+
 - MySQL 8+
