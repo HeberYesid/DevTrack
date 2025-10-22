@@ -2,28 +2,28 @@
 set -e
 
 echo "=================================================="
-echo "🐳 DevTrack Backend - Inicialización"
+echo "ðŸ³ DevTrack Backend - InicializaciÃ³n"
 echo "=================================================="
 
 # Obtener valores de variables de entorno
 DB_HOST=${DB_HOST:-db}
 DB_PORT=${DB_PORT:-3306}
 
-echo "🔄 Esperando a que MySQL esté disponible en ${DB_HOST}:${DB_PORT}..."
-./wait-for-it.sh ${DB_HOST}:${DB_PORT} --timeout=60 --strict -- echo "✅ MySQL está listo!"
+echo "ðŸ”„ Esperando a que MySQL estÃ© disponible en ${DB_HOST}:${DB_PORT}..."
+./wait-for-it.sh ${DB_HOST}:${DB_PORT} --timeout=60 --strict -- echo "âœ… MySQL estÃ¡ listo!"
 
 echo ""
-echo "🔄 Aplicando migraciones de base de datos..."
+echo "ðŸ”„ Aplicando migraciones de base de datos..."
 python manage.py migrate --noinput
 
 echo ""
-echo "🔄 Recolectando archivos estáticos..."
-python manage.py collectstatic --noinput --clear || echo "⚠️  collectstatic falló (puede ser normal en desarrollo)"
+echo "ðŸ”„ Recolectando archivos estÃ¡ticos..."
+python manage.py collectstatic --noinput --clear || echo "âš ï¸  collectstatic fallÃ³ (puede ser normal en desarrollo)"
 
 echo ""
-echo "✅ Inicialización completada exitosamente!"
+echo "âœ… InicializaciÃ³n completada exitosamente!"
 echo "=================================================="
-echo "🚀 Iniciando servidor Django..."
+echo "ðŸš€ Iniciando servidor Django..."
 echo "=================================================="
 echo ""
 
