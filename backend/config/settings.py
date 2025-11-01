@@ -18,12 +18,23 @@ load_dotenv(BASE_DIR / '.env')  # expects a .env file at backend/.env
 # Security
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key')
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "*",
-    os.environ.get("RAILWAY_PUBLIC_DOMAIN"),
-]
+
+# ALLOWED_HOSTS configuration
+allowed_hosts_env = os.getenv('DJANGO_ALLOWED_HOSTS', '')
+if allowed_hosts_env:
+    # Split by comma for multiple hosts
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',')]
+else:
+    # Default for development
+    ALLOWED_HOSTS = [
+        "localhost",
+        "127.0.0.1",
+        "devtrack-production-2b1d.up.railway.app",
+    ]
+    # Add Railway domain if available
+    railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+    if railway_domain:
+        ALLOWED_HOSTS.append(railway_domain)
 
 
 # Applications
