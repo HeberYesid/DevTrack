@@ -2,7 +2,11 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+import dj_database_url
 import pymysql
+
+
+
 
 # Allow PyMySQL to act as MySQLdb
 pymysql.install_as_MySQLdb()
@@ -14,7 +18,13 @@ load_dotenv(BASE_DIR / '.env')  # expects a .env file at backend/.env
 # Security
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key')
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "*",
+    os.environ.get("RAILWAY_PUBLIC_DOMAIN"),
+]
+
 
 # Applications
 INSTALLED_APPS = [
@@ -82,6 +92,13 @@ DATABASES = {
         }
     }
 }
+# Si Railway provee DATABASE_URL, usarla
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    DATABASES['default'] = dj_database_url.config(
+        default=DATABASE_URL,
+        engine='django.db.backends.mysql'
+    )
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
