@@ -4,7 +4,6 @@ aptPkgs = ['default-libmysqlclient-dev', 'pkg-config']
 
 [phases.install]
 cmds = [
-  'pip3 install --upgrade pip',
   'pip3 install -r backend/requirements.txt'
 ]
 
