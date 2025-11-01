@@ -14,8 +14,9 @@ backlog = 2048
 # ==============================================
 # Worker Processes
 # ==============================================
-# Número de workers: (2 x número de cores) + 1
-workers = multiprocessing.cpu_count() * 2 + 1
+# Número de workers: limitado para entornos de producción con recursos compartidos
+# Railway/Heroku recomiendan 2-4 workers para planes básicos
+workers = int(os.getenv("WEB_CONCURRENCY", "4"))  # Default: 4 workers
 worker_class = "sync"
 worker_connections = 1000
 max_requests = 1000  # Reiniciar workers después de N requests (previene memory leaks)
