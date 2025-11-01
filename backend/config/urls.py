@@ -1,7 +1,12 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+
+def health_check(request):
+    """Simple health check for Railway - no DB required"""
+    return HttpResponse("OK", content_type="text/plain", status=200)
 
 
 def home_view(request):
@@ -11,6 +16,7 @@ def home_view(request):
         'version': '1.0.0',
         'status': 'active',
         'endpoints': {
+            'health': '/health/',
             'authentication': '/api/auth/',
             'courses': '/api/courses/',
             'notifications': '/api/notifs/',
@@ -18,12 +24,13 @@ def home_view(request):
             'api_documentation': '/api/docs/',
             'api_schema': '/api/schema/',
         },
-        'documentation': 'http://localhost:8000/api/docs/',
+        'documentation': 'https://devtrack-production-2b1d.up.railway.app/api/docs/',
         'description': 'Sistema de gestión educativa para rastrear el progreso académico de estudiantes'
     })
 
 
 urlpatterns = [
+    path('health/', health_check, name='health'),  # Railway health check
     path('', home_view, name='home'),
     path('admin/', admin.site.urls),
 
