@@ -1,10 +1,11 @@
 [phases.setup]
-nixPkgs = ['python311', 'python311Packages.pip', 'gcc', 'bash']
+nixPkgs = ['python311', 'python311Packages.pip', 'python311Packages.virtualenv', 'gcc', 'bash']
 aptPkgs = ['default-libmysqlclient-dev', 'pkg-config']
 
 [phases.install]
 cmds = [
-  'pip3 install --user -r backend/requirements.txt'
+  'python3 -m venv /opt/venv',
+  '/opt/venv/bin/pip install -r backend/requirements.txt'
 ]
 
 [start]
