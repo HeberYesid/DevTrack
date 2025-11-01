@@ -21,7 +21,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f'User {email} already exists'))
             return
 
+        # AbstractUser requires username, we use email as username
         User.objects.create_superuser(
+            username=email,  # Django's AbstractUser requires username
             email=email,
             password=password,
             first_name=first_name,
