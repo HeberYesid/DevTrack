@@ -8,7 +8,9 @@ import os
 # ==============================================
 # Server Socket
 # ==============================================
-bind = "0.0.0.0:8000"
+# Use PORT from environment (Railway injects this)
+port = os.getenv("PORT", "8000")
+bind = f"0.0.0.0:{port}"
 backlog = 2048
 
 # ==============================================
