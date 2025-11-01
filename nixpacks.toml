@@ -1,11 +1,12 @@
 [phases.setup]
-nixPkgs = ['python311', 'gcc', 'mysql']
+nixPkgs = ['python311', 'gcc', 'bash']
+aptPkgs = ['default-libmysqlclient-dev', 'pkg-config']
 
 [phases.install]
-cmds = ['cd backend && pip install -r requirements.txt']
-
-[phases.build]
-cmds = ['cd backend && python manage.py collectstatic --noinput']
+cmds = [
+  'pip install --upgrade pip',
+  'pip install -r backend/requirements.txt'
+]
 
 [start]
-cmd = 'cd backend && python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --log-file -'
+cmd = 'bash start.sh'
