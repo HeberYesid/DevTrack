@@ -12,48 +12,54 @@ class TestNotificationModel:
     def test_create_notification(self, student_user):
         """Test creating a notification"""
         notification = Notification.objects.create(
-            user=student_user,
+            recipient=student_user,
             title='New Assignment',
             message='You have a new assignment in Math',
-            type='ASSIGNMENT'
+            type=Notification.Type.GENERAL
         )
-        assert notification.user == student_user
+        assert notification.recipient == student_user
         assert notification.title == 'New Assignment'
-        assert not notification.read
+        assert not notification.is_read
     
     def test_notification_str_representation(self, student_user):
         """Test string representation of notification"""
         notification = Notification.objects.create(
-            user=student_user,
+            recipient=student_user,
             title='Test Notification',
             message='Test message',
-            type='INFO'
+            type=Notification.Type.GENERAL
         )
         assert 'Test Notification' in str(notification)
+        assert student_user.email in str(notification)
     
     def test_mark_notification_as_read(self, student_user):
         """Test marking notification as read"""
         notification = Notification.objects.create(
-            user=student_user,
+            recipient=student_user,
             title='Test',
             message='Test message'
         )
-        assert not notification.read
+        assert not notification.is_read
         
-        notification.read = True
+        notification.is_read = True
         notification.save()
-        assert notification.read
+        assert notification.is_read
     
     def test_notification_types(self, student_user):
         """Test different notification types"""
-        types = ['INFO', 'ASSIGNMENT', 'GRADE', 'ANNOUNCEMENT']
+        types = [
+            Notification.Type.ENROLLMENT_CREATED,
+            Notification.Type.RESULTS_UPDATED,
+            Notification.Type.REPORT_READY,
+            Notification.Type.GENERAL
+        ]
         
         for notif_type in types:
             Notification.objects.create(
-                user=student_user,
+                recipient=student_user,
                 title=f'{notif_type} Notification',
                 message='Test',
                 type=notif_type
             )
         
-        assert Notification.objects.filter(user=student_user).count() == len(types)
+        assert Notification.objects.filter(recipient=student_user).count() == len(types)

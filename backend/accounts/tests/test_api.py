@@ -13,102 +13,104 @@ User = get_user_model()
 class TestRegistrationAPI:
     """Tests for user registration"""
     
-    def test_register_student_success(self, api_client):
+    @patch('accounts.serializers.send_verification_code_email')
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_register_student_success(self, mock_turnstile, mock_email, api_client):
         """Test successful student registration"""
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('register')
-            data = {
-                'email': 'newstudent@example.com',
-                'password': 'testpass123',
-                'first_name': 'New',
-                'last_name': 'Student',
-                'role': 'STUDENT',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            
-            assert response.status_code == 201
-            assert User.objects.filter(email='newstudent@example.com').exists()
-            user = User.objects.get(email='newstudent@example.com')
-            assert user.role == User.Roles.STUDENT
-            assert not user.is_email_verified
+        url = reverse('register')
+        data = {
+            'email': 'newstudent@example.com',
+            'password': 'testpass123',
+            'first_name': 'New',
+            'last_name': 'Student',
+            'role': 'STUDENT',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        
+        assert response.status_code == 201
+        assert User.objects.filter(email='newstudent@example.com').exists()
+        user = User.objects.get(email='newstudent@example.com')
+        assert user.role == User.Roles.STUDENT
+        assert not user.is_email_verified
     
-    def test_register_without_captcha(self, api_client):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=False)
+    def test_register_without_captcha(self, mock_turnstile, api_client):
         """Test registration without captcha fails"""
-        with patch('accounts.utils.verify_turnstile_token', return_value=False):
-            url = reverse('register')
-            data = {
-                'email': 'test@example.com',
-                'password': 'testpass123',
-                'first_name': 'Test',
-                'last_name': 'User',
-                'turnstile_token': 'invalid_token'
-            }
-            response = api_client.post(url, data, format='json')
-            assert response.status_code == 400
+        url = reverse('register')
+        data = {
+            'email': 'test@example.com',
+            'password': 'testpass123',
+            'first_name': 'Test',
+            'last_name': 'User',
+            'turnstile_token': 'invalid_token'
+        }
+        response = api_client.post(url, data, format='json')
+        assert response.status_code == 400
     
-    def test_register_duplicate_email(self, api_client, student_user):
+    @patch('accounts.serializers.send_verification_code_email')
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_register_duplicate_email(self, mock_turnstile, mock_email, api_client, student_user):
         """Test registration with duplicate email"""
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('register')
-            data = {
-                'email': student_user.email,
-                'password': 'testpass123',
-                'first_name': 'Test',
-                'last_name': 'User',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            assert response.status_code == 400
+        url = reverse('register')
+        data = {
+            'email': student_user.email,
+            'password': 'testpass123',
+            'first_name': 'Test',
+            'last_name': 'User',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        assert response.status_code == 400
 
 
 @pytest.mark.django_db
 class TestLoginAPI:
     """Tests for user login"""
     
-    def test_login_success(self, api_client, student_user):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_login_success(self, mock_turnstile, api_client, student_user):
         """Test successful login"""
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('login')
-            data = {
-                'email': student_user.email,
-                'password': 'testpass123',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            
-            assert response.status_code == 200
-            assert 'access' in response.data
-            assert 'refresh' in response.data
-            assert 'user' in response.data
+        url = reverse('login')
+        data = {
+            'email': student_user.email,
+            'password': 'testpass123',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        
+        assert response.status_code == 200
+        assert 'access' in response.data
+        assert 'refresh' in response.data
+        assert 'user' in response.data
     
-    def test_login_invalid_credentials(self, api_client, student_user):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_login_invalid_credentials(self, mock_turnstile, api_client, student_user):
         """Test login with invalid credentials"""
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('login')
-            data = {
-                'email': student_user.email,
-                'password': 'wrongpassword',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            assert response.status_code == 401
+        url = reverse('login')
+        data = {
+            'email': student_user.email,
+            'password': 'wrongpassword',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        assert response.status_code == 401
     
-    def test_login_unverified_email(self, api_client, create_user):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_login_unverified_email(self, mock_turnstile, api_client, create_user):
         """Test login with unverified email"""
         user = create_user(email='unverified@example.com', username='unverified@example.com')
         user.is_email_verified = False
         user.save()
         
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('login')
-            data = {
-                'email': user.email,
-                'password': 'testpass123',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            assert response.status_code == 401
+        url = reverse('login')
+        data = {
+            'email': user.email,
+            'password': 'testpass123',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        assert response.status_code == 401
 
 
 @pytest.mark.django_db
@@ -137,7 +139,7 @@ class TestEmailVerificationAPI:
         student_user.refresh_from_db()
         assert student_user.is_email_verified
         code.refresh_from_db()
-        assert code.used
+        assert code.is_used
     
     def test_verify_invalid_code(self, api_client, student_user):
         """Test verification with invalid code"""
@@ -151,7 +153,7 @@ class TestEmailVerificationAPI:
     
     def test_verify_expired_code(self, api_client, student_user):
         """Test verification with expired code"""
-        code = EmailVerificationCode.objects.create(
+        EmailVerificationCode.objects.create(
             user=student_user,
             code='123456',
             expires_at=timezone.now() - timedelta(minutes=1)
@@ -183,7 +185,9 @@ class TestEmailVerificationAPI:
 class TestTeacherRegistrationAPI:
     """Tests for teacher registration with invitation code"""
     
-    def test_register_teacher_success(self, api_client, admin_user):
+    @patch('accounts.serializers.send_verification_code_email')
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_register_teacher_success(self, mock_turnstile, mock_email, api_client, admin_user):
         """Test successful teacher registration"""
         invitation = TeacherInvitationCode.objects.create(
             email='newteacher@example.com',
@@ -192,85 +196,84 @@ class TestTeacherRegistrationAPI:
             expires_at=timezone.now() + timedelta(days=7)
         )
         
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('register-teacher')
-            data = {
-                'email': 'newteacher@example.com',
-                'password': 'testpass123',
-                'first_name': 'New',
-                'last_name': 'Teacher',
-                'invitation_code': 'ABC123DEF456',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            
-            assert response.status_code == 201
-            assert User.objects.filter(email='newteacher@example.com').exists()
-            user = User.objects.get(email='newteacher@example.com')
-            assert user.role == User.Roles.TEACHER
-            
-            invitation.refresh_from_db()
-            assert invitation.used
-            assert invitation.used_by == user
+        url = reverse('register-teacher')
+        data = {
+            'email': 'newteacher@example.com',
+            'password': 'testpass123',
+            'first_name': 'New',
+            'last_name': 'Teacher',
+            'invitation_code': 'ABC123DEF456',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        
+        assert response.status_code == 201
+        assert User.objects.filter(email='newteacher@example.com').exists()
+        user = User.objects.get(email='newteacher@example.com')
+        assert user.role == User.Roles.TEACHER
+        
+        invitation.refresh_from_db()
+        assert invitation.used
+        assert invitation.used_by == user
     
-    def test_register_teacher_invalid_code(self, api_client):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_register_teacher_invalid_code(self, mock_turnstile, api_client):
         """Test teacher registration with invalid code"""
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('register-teacher')
-            data = {
-                'email': 'teacher@example.com',
-                'password': 'testpass123',
-                'first_name': 'Test',
-                'last_name': 'Teacher',
-                'invitation_code': 'INVALID123',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            assert response.status_code == 400
+        url = reverse('register-teacher')
+        data = {
+            'email': 'teacher@example.com',
+            'password': 'testpass123',
+            'first_name': 'Test',
+            'last_name': 'Teacher',
+            'invitation_code': 'INVALID123',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        assert response.status_code == 400
     
-    def test_register_teacher_expired_code(self, api_client, admin_user):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_register_teacher_expired_code(self, mock_turnstile, api_client, admin_user):
         """Test teacher registration with expired code"""
-        invitation = TeacherInvitationCode.objects.create(
+        TeacherInvitationCode.objects.create(
             email='teacher@example.com',
             code='EXPIRED12345',
             created_by=admin_user,
             expires_at=timezone.now() - timedelta(days=1)
         )
         
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('register-teacher')
-            data = {
-                'email': 'teacher@example.com',
-                'password': 'testpass123',
-                'first_name': 'Test',
-                'last_name': 'Teacher',
-                'invitation_code': 'EXPIRED12345',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            assert response.status_code == 400
+        url = reverse('register-teacher')
+        data = {
+            'email': 'teacher@example.com',
+            'password': 'testpass123',
+            'first_name': 'Test',
+            'last_name': 'Teacher',
+            'invitation_code': 'EXPIRED12345',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        assert response.status_code == 400
     
-    def test_register_teacher_wrong_email(self, api_client, admin_user):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_register_teacher_wrong_email(self, mock_turnstile, api_client, admin_user):
         """Test teacher registration with wrong email"""
-        invitation = TeacherInvitationCode.objects.create(
+        TeacherInvitationCode.objects.create(
             email='correct@example.com',
             code='TEST12345678',
             created_by=admin_user,
             expires_at=timezone.now() + timedelta(days=7)
         )
         
-        with patch('accounts.utils.verify_turnstile_token', return_value=True):
-            url = reverse('register-teacher')
-            data = {
-                'email': 'wrong@example.com',
-                'password': 'testpass123',
-                'first_name': 'Test',
-                'last_name': 'Teacher',
-                'invitation_code': 'TEST12345678',
-                'turnstile_token': 'fake_token'
-            }
-            response = api_client.post(url, data, format='json')
-            assert response.status_code == 400
+        url = reverse('register-teacher')
+        data = {
+            'email': 'wrong@example.com',
+            'password': 'testpass123',
+            'first_name': 'Test',
+            'last_name': 'Teacher',
+            'invitation_code': 'TEST12345678',
+            'turnstile_token': 'fake_token'
+        }
+        response = api_client.post(url, data, format='json')
+        assert response.status_code == 400
 
 
 @pytest.mark.django_db

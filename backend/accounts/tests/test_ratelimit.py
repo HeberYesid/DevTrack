@@ -8,6 +8,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 from django.core.cache import cache
+from unittest.mock import patch
 from accounts.models import User
 
 
@@ -23,7 +24,8 @@ def clear_cache():
 class TestRateLimitLogin:
     """Test rate limiting on login endpoint"""
     
-    def test_login_allows_5_attempts(self, api_client):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_login_allows_5_attempts(self, mock_turnstile, api_client):
         """Test that 5 login attempts are allowed within the rate limit"""
         url = reverse('login')
         data = {
@@ -42,7 +44,8 @@ class TestRateLimitLogin:
                 status.HTTP_401_UNAUTHORIZED
             ], f"Attempt {i+1} should not be rate limited"
     
-    def test_login_blocks_6th_attempt(self, api_client):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_login_blocks_6th_attempt(self, mock_turnstile, api_client):
         """Test that the 6th login attempt is blocked by rate limiting"""
         url = reverse('login')
         data = {
@@ -65,7 +68,8 @@ class TestRateLimitLogin:
 class TestRateLimitRegister:
     """Test rate limiting on registration endpoint"""
     
-    def test_register_allows_5_attempts(self, api_client):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_register_allows_5_attempts(self, mock_turnstile, api_client):
         """Test that 5 registration attempts are allowed"""
         url = reverse('register')
         
@@ -82,7 +86,9 @@ class TestRateLimitRegister:
             # May fail validation, but should not be rate limited
             assert response.status_code != status.HTTP_429_TOO_MANY_REQUESTS
     
-    def test_register_blocks_6th_attempt(self, api_client):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    @patch('accounts.serializers.send_verification_code_email')
+    def test_register_blocks_6th_attempt(self, mock_email, mock_turnstile, api_client):
         """Test that the 6th registration attempt is blocked"""
         url = reverse('register')
         
@@ -144,13 +150,15 @@ class TestRateLimitVerifyCode:
 class TestRateLimitResendCode:
     """Test rate limiting on resend code endpoint"""
     
-    def test_resend_code_allows_3_attempts(self, api_client):
+    @patch('accounts.serializers.send_verification_code_email')
+    def test_resend_code_allows_3_attempts(self, mock_email, api_client):
         """Test that 3 resend attempts are allowed in 5 minutes"""
-        # Create a user first
-        user = User.objects.create_user(
+        # Create an unverified user
+        User.objects.create_user(
             username='test@example.com',
             email='test@example.com',
-            password='testpass123'
+            password='testpass123',
+            is_email_verified=False
         )
         
         url = reverse('resend-code')
@@ -161,13 +169,15 @@ class TestRateLimitResendCode:
             response = api_client.post(url, data, format='json')
             assert response.status_code != status.HTTP_429_TOO_MANY_REQUESTS
     
-    def test_resend_code_blocks_4th_attempt(self, api_client):
+    @patch('accounts.serializers.send_verification_code_email')
+    def test_resend_code_blocks_4th_attempt(self, mock_email, api_client):
         """Test that the 4th resend attempt is blocked"""
-        # Create a user first
-        user = User.objects.create_user(
+        # Create an unverified user
+        User.objects.create_user(
             username='test@example.com',
             email='test@example.com',
-            password='testpass123'
+            password='testpass123',
+            is_email_verified=False
         )
         
         url = reverse('resend-code')
@@ -223,7 +233,8 @@ class TestRateLimitChangePassword:
 class TestRateLimitResponse:
     """Test the format of rate limit error responses"""
     
-    def test_rate_limit_response_format(self, api_client):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_rate_limit_response_format(self, mock_turnstile, api_client):
         """Test that rate limit responses have correct format"""
         url = reverse('login')
         data = {
@@ -250,7 +261,8 @@ class TestRateLimitResponse:
 class TestRateLimitIntegration:
     """Integration tests for rate limiting across multiple endpoints"""
     
-    def test_rate_limits_are_independent_per_endpoint(self, api_client):
+    @patch('accounts.serializers.verify_turnstile_token', return_value=True)
+    def test_rate_limits_are_independent_per_endpoint(self, mock_turnstile, api_client):
         """Test that rate limits are tracked separately for each endpoint"""
         login_url = reverse('login')
         register_url = reverse('register')

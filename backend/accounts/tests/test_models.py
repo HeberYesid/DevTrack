@@ -66,7 +66,7 @@ class TestEmailVerificationCode:
         )
         assert code.user == student_user
         assert code.code == '123456'
-        assert not code.used
+        assert not code.is_used
     
     def test_verification_code_is_valid(self, student_user):
         """Test if verification code is valid"""
@@ -92,7 +92,7 @@ class TestEmailVerificationCode:
             user=student_user,
             code='123456',
             expires_at=timezone.now() + timedelta(minutes=15),
-            used=True
+            is_used=True
         )
         assert not code.is_valid()
     
@@ -104,7 +104,7 @@ class TestEmailVerificationCode:
             expires_at=timezone.now() + timedelta(minutes=15)
         )
         code.mark_used()
-        assert code.used
+        assert code.is_used
 
 
 @pytest.mark.django_db

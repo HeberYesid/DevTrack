@@ -64,6 +64,7 @@ def admin_user(create_user):
     return create_user(
         email='admin@example.com',
         username='admin@example.com',
+        role=User.Roles.ADMIN,
         is_staff=True,
         is_superuser=True
     )
