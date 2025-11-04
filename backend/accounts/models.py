@@ -15,6 +15,10 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.STUDENT)
     is_email_verified = models.BooleanField(default=False)
+    session_timeout = models.IntegerField(
+        default=30,
+        help_text='Tiempo de inactividad en minutos antes de cerrar sesión automáticamente (5-120 minutos)'
+    )
 
     def create_email_verification_token(self, hours_valid: int = 48) -> str:
         token = secrets.token_urlsafe(48)

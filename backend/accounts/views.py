@@ -145,12 +145,21 @@ class ProfileView(APIView):
         serializer = UserSerializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         
-        # Solo permitir actualizar first_name y last_name
-        allowed_fields = ['first_name', 'last_name']
+        # Solo permitir actualizar first_name, last_name y session_timeout
+        allowed_fields = ['first_name', 'last_name', 'session_timeout']
         for field in request.data.keys():
             if field not in allowed_fields:
                 return Response(
                     {'detail': f'No se permite actualizar el campo: {field}'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Validar session_timeout si se proporciona
+        if 'session_timeout' in request.data:
+            timeout = request.data['session_timeout']
+            if not isinstance(timeout, int) or timeout < 5 or timeout > 120:
+                return Response(
+                    {'session_timeout': ['El timeout debe ser un número entre 5 y 120 minutos']}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
