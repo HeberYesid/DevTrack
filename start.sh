@@ -15,14 +15,15 @@ python manage.py migrate --noinput || echo "⚠️  Skipping migrations (DB not 
 # Collect static files
 python manage.py collectstatic --noinput
 
-# Create superuser if it doesn't exist
+# Create or update superuser
 echo "👤 Checking for superuser..."
 python manage.py create_admin \
   --email "${SUPERUSER_EMAIL:-admin@devtrack.com}" \
   --password "${SUPERUSER_PASSWORD:-admin123}" \
   --first-name "${SUPERUSER_FIRST_NAME:-Admin}" \
   --last-name "${SUPERUSER_LAST_NAME:-User}" \
-  || echo "ℹ️  Superuser already exists or creation skipped"
+  --update \
+  || echo "⚠️  Superuser setup failed"
 
 echo "🚀 Starting Gunicorn on 0.0.0.0:${PORT:-8000}"
 
