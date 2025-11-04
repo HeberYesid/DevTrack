@@ -171,6 +171,20 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()]
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF Trusted Origins (for Django admin and forms)
+CSRF_TRUSTED_ORIGINS = [
+    'https://devtrack-production-2b1d.up.railway.app',
+    'https://*.railway.app',
+]
+# Add Railway domain if available
+railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+if railway_domain:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{railway_domain}")
+# Add custom origins from env
+csrf_origins_env = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if csrf_origins_env:
+    CSRF_TRUSTED_ORIGINS.extend([o.strip() for o in csrf_origins_env.split(',') if o.strip()])
+
 # Email
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = os.getenv('EMAIL_HOST', '')
