@@ -137,10 +137,12 @@ def verify_turnstile_token(token: str, remote_ip: str = None) -> bool:
     Returns True if the token is valid, False otherwise.
     """
     if not token:
+        print("❌ Turnstile: Token vacío")
         return False
     
     secret_key = os.getenv('TURNSTILE_SECRET_KEY')
     if not secret_key:
+        print("⚠️  Turnstile: SECRET_KEY no configurado")
         # For development, you might want to skip verification
         # In production, this should always be required
         return getattr(settings, 'DEBUG', False)
@@ -158,8 +160,16 @@ def verify_turnstile_token(token: str, remote_ip: str = None) -> bool:
         response = requests.post(url, data=data, timeout=10)
         response.raise_for_status()
         result = response.json()
-        return result.get('success', False)
-    except (requests.RequestException, ValueError, KeyError):
+        success = result.get('success', False)
+        
+        if not success:
+            print(f"❌ Turnstile falló: {result.get('error-codes', [])}")
+        else:
+            print(f"✅ Turnstile validado correctamente")
+            
+        return success
+    except (requests.RequestException, ValueError, KeyError) as e:
         # In case of network errors or invalid responses, 
         # you might want to allow or deny based on your security policy
+        print(f"❌ Turnstile error: {str(e)}")
         return False

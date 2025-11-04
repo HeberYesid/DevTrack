@@ -28,7 +28,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['email', 'password', 'first_name', 'last_name', 'role', 'turnstile_token']
 
     def validate(self, attrs):
+        email = attrs.get('email', '').lower().strip()
         turnstile_token = attrs.get('turnstile_token')
+        
+        # Check if user already exists
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({'email': 'Este email ya está registrado.'})
         
         # Get client IP from request context
         request = self.context.get('request')
@@ -40,9 +45,13 @@ class RegisterSerializer(serializers.ModelSerializer):
             else:
                 remote_ip = request.META.get('REMOTE_ADDR')
         
-        if not verify_turnstile_token(turnstile_token, remote_ip):
-            raise serializers.ValidationError('Verificación de seguridad fallida. Intenta de nuevo.')
+        print(f"🔍 Validando Turnstile - Token: {turnstile_token[:20]}... | IP: {remote_ip}")
         
+        if not verify_turnstile_token(turnstile_token, remote_ip):
+            print(f"❌ Turnstile falló para {email}")
+            raise serializers.ValidationError({'turnstile_token': 'Verificación de seguridad fallida. Intenta de nuevo.'})
+        
+        print(f"✅ Turnstile validado correctamente para {email}")
         return attrs
 
     def create(self, validated_data):
