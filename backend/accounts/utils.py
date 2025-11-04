@@ -4,6 +4,53 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import User
 
+# SendGrid imports
+try:
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail
+    SENDGRID_AVAILABLE = True
+except ImportError:
+    SENDGRID_AVAILABLE = False
+
+
+def send_email_with_sendgrid(to_email: str, subject: str, message: str) -> bool:
+    """
+    Envía un email usando SendGrid API.
+    Retorna True si se envió exitosamente, False en caso contrario.
+    """
+    if not SENDGRID_AVAILABLE:
+        print("⚠️  SendGrid no está instalado, usando Django mail backend")
+        return False
+    
+    sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+    if not sendgrid_api_key:
+        print("⚠️  SENDGRID_API_KEY no configurado, usando Django mail backend")
+        return False
+    
+    try:
+        from_email = os.getenv('SENDGRID_FROM_EMAIL', getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@devtrack.com'))
+        
+        mail = Mail(
+            from_email=from_email,
+            to_emails=to_email,
+            subject=subject,
+            plain_text_content=message
+        )
+        
+        sg = SendGridAPIClient(sendgrid_api_key)
+        response = sg.send(mail)
+        
+        if response.status_code in [200, 201, 202]:
+            print(f"✅ Email enviado exitosamente a {to_email} vía SendGrid")
+            return True
+        else:
+            print(f"⚠️  SendGrid respondió con código {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error enviando email con SendGrid: {str(e)}")
+        return False
+
 
 def send_verification_email(user: User) -> str:
     """
@@ -73,17 +120,22 @@ def send_verification_code_email(user: User, is_password_reset: bool = False) ->
             f"Equipo DevTrack"
         )
 
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost'),
-            recipient_list=[email],
-            fail_silently=False,
-        )
-        print(f"✅ Email enviado exitosamente a {email}")
-    except Exception as e:
-        print(f"❌ Error enviando email a {email}: {str(e)}")
+    # Intentar enviar con SendGrid primero
+    sendgrid_success = send_email_with_sendgrid(email, subject, message)
+    
+    # Si SendGrid falla o no está configurado, usar Django mail backend
+    if not sendgrid_success:
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost'),
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            print(f"✅ Email enviado exitosamente a {email} vía Django")
+        except Exception as e:
+            print(f"❌ Error enviando email a {email}: {str(e)}")
     
     return code
 
@@ -117,18 +169,23 @@ def send_teacher_invitation_email(invitation) -> None:
         f"Equipo DevTrack"
     )
 
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost'),
-            recipient_list=[invitation.email],
-            fail_silently=False,
-        )
-        print(f"✅ Email de invitación enviado exitosamente a {invitation.email}")
-    except Exception as e:
-        print(f"❌ Error enviando email de invitación a {invitation.email}: {str(e)}")
-        raise
+    # Intentar enviar con SendGrid primero
+    sendgrid_success = send_email_with_sendgrid(invitation.email, subject, message)
+    
+    # Si SendGrid falla o no está configurado, usar Django mail backend
+    if not sendgrid_success:
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@localhost'),
+                recipient_list=[invitation.email],
+                fail_silently=False,
+            )
+            print(f"✅ Email de invitación enviado exitosamente a {invitation.email} vía Django")
+        except Exception as e:
+            print(f"❌ Error enviando email de invitación a {invitation.email}: {str(e)}")
+            raise
 
 
 def verify_turnstile_token(token: str, remote_ip: str = None) -> bool:
