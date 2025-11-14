@@ -1,159 +1,405 @@
 # DevTrack
 
-Aplicación web completa (backend Django + frontend React) para gestión académica: materias, inscripciones, ejercicios y resultados, dashboard, exportes y notificaciones in‑app.
+**Sistema de seguimiento académico full-stack** para monitoreo del rendimiento estudiantil con clasificación automática y notificaciones en tiempo real.
 
 ---
 
-## �📚 Documentación
+## 🎯 Características Principales
 
-Toda la documentación técnica, guías de implementación y referencias del sistema están organizadas en la carpeta **[`docs/`](./docs/)**:
-
-- **[API Guide](./docs/API_GUIDE.md)** - Guía completa para usar el backend como API REST
-- **[Docker Setup](./docs/DOCKER_SETUP.md)** - 🐳 Guía completa de Docker
-- **[Theme System](./docs/THEME_SYSTEM_DOCS.md)** - Sistema de temas (light/dark mode)
-- **[Role-Based Views](./docs/ROLE_BASED_VIEWS.md)** - Vistas basadas en roles
-- **[Testing Guide](./docs/TESTING.md)** - Guía de testing
-- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Solución de problemas
-- Y mucho más...
-
-Visita el [índice completo de documentación](./docs/README.md) para más detalles.
+- **Gestión de Cursos**: Creación y administración de materias, ejercicios y resultados
+- **Sistema de Semáforo**: Clasificación automática verde/amarillo/rojo según rendimiento
+- **Cálculo Automático de Notas**: Lógica inteligente basada en estado de ejercicios
+- **Notificaciones en Tiempo Real**: Alertas automáticas generadas por eventos del sistema
+- **Carga Masiva de Datos**: Importación CSV de estudiantes y resultados
+- **Control de Acceso Granular**: Tres roles con permisos específicos (Student/Teacher/Admin)
+- **Autenticación Segura**: JWT con refresh tokens y verificación de email por código de 6 dígitos
+- **Protección Anti-Abuso**: Rate limiting configurable en endpoints sensibles
+- **Sistema de Temas**: Modo claro/oscuro con CSS variables
 
 ---
 
-## ⚙️ Setup Manual (Sin Docker)
+## 🛠️ Stack Tecnológico
+
+**Backend**
+- Django 5.0 + Django REST Framework
+- MySQL 8+ para persistencia de datos
+- JWT para autenticación
+- Pytest para testing con cobertura >90%
+
+**Frontend**
+- React 18 + Vite
+- Context API para estado global
+- Axios con interceptores automáticos
+- Vitest para testing de componentes
+
+---
+
+## 🚀 Inicio Rápido
 
 ### Requisitos
-
 - Python 3.11+
 - MySQL 8+
 - Node 18+
 
----
+### 1. Clonar el repositorio
+```powershell
+git clone https://github.com/HeberYesid/DevTrack.git
+cd DevTrack
+```
 
-## Backend (Django)
+### 2. Configurar Backend
 
-1. Crear entorno virtual e instalar dependencias
-
-```bash
+**Crear entorno virtual**
+```powershell
 cd backend
-python -m venv .venv 
-#Escoger una de las dos
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass # saltar el bloqueo de scripts una sola vez
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned # deshabilitar permanente para el usuario
-. .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-2. Variables de entorno
-
-```bash
-copy .env.example .env  # Windows
+**Variables de entorno**
+```powershell
+copy .env.example .env
 ```
 
-Edita `backend/.env` y define:
-
-- `DJANGO_SECRET_KEY`
-```bash
-
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())" #GENERAR SECRET KEY
+Edita `backend/.env`:
+```env
+DJANGO_SECRET_KEY=<genera-con-comando-abajo>
+DB_NAME=devtrack
+DB_USER=devtrack
+DB_PASSWORD=tu_password
+DB_HOST=localhost
+DB_PORT=3306
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+FRONTEND_URL=http://localhost:5173
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 ```
-- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`
-- `CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
-- `FRONTEND_URL=http://localhost:5173`
 
-3. Base de datos MySQL (ejemplo)
+Generar secret key:
+```powershell
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
 
+**Base de datos MySQL**
 ```sql
 CREATE DATABASE devtrack CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'devtrack'@'%' IDENTIFIED BY 'devtrack_password';
+CREATE USER 'devtrack'@'%' IDENTIFIED BY 'tu_password';
 GRANT ALL PRIVILEGES ON devtrack.* TO 'devtrack'@'%';
 FLUSH PRIVILEGES;
 ```
 
-4. Migraciones y superusuario
-
-```bash
-python manage.py makemigrations
+**Ejecutar migraciones**
+```powershell
 python manage.py migrate
 python manage.py createsuperuser
 ```
 
-5. Ejecutar servidor
-
-```bash
+**Iniciar servidor**
+```powershell
 python manage.py runserver
 ```
 
-Documentación de API: http://127.0.0.1:8000/api/docs/
+### 3. Configurar Frontend
 
-### Autenticación y verificación por email
-
-DevTrack incluye un sistema completo de verificación por código de 6 dígitos:
-
-**Endpoints de autenticación:**
-- Registro: `POST /api/auth/register/` (rol forzado a `STUDENT` por seguridad)
-- Login: `POST /api/auth/login/` (requiere email verificado)
-- Verificación por código: `POST /api/auth/verify-code/` (código de 6 dígitos)
-- Reenviar código: `POST /api/auth/resend-code/`
-- Verificación por token: `GET /api/auth/verify/?token=...` (sistema legacy)
-- Perfil: `GET /api/auth/me/`
-
-**Sistema de códigos de verificación:**
-- Se generan códigos aleatorios de 6 dígitos
-- Validez: 15 minutos
-- Se invalidan automáticamente al generar uno nuevo
-- Se muestran en la consola del servidor para desarrollo
-- Se envían por email al usuario
-
-**Configuración de email:**
-Para envío real de emails, configura en `.env`:
-```env
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=tu-email@gmail.com
-EMAIL_HOST_PASSWORD=tu-contraseña-de-aplicacion
-EMAIL_USE_TLS=True
-DEFAULT_FROM_EMAIL=DevTrack <tu-email@gmail.com>
-```
-
-Para Gmail, necesitas generar una contraseña de aplicación en tu cuenta Google.
-
-**Seguridad:**
-
-- Integración con Cloudflare Turnstile para prevenir bots
-- Validación de IP en verificaciones de seguridad
-- Tokens JWT para autenticación de sesiones
-- Códigos de verificación con expiración automática
-
----
-
-## Frontend (React + Vite)
-
-1. Variables de entorno
-
-```bash
+**Variables de entorno**
+```powershell
 cd frontend
 copy .env.example .env
 ```
 
-En `frontend/.env`:
-
+Edita `frontend/.env`:
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8000
 VITE_TURNSTILE_SITE_KEY=0x4AAAAAAB195XyO5y089iC-
 ```
 
-Para producción, necesitarás configurar tus propias claves de Turnstile en [Cloudflare](https://developers.cloudflare.com/turnstile/).
-
-2. Instalar y ejecutar
-
-```bash
+**Instalar dependencias y ejecutar**
+```powershell
 npm install
 npm run dev
 ```
 
-Abrir http://localhost:5173
+### Accesos
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://127.0.0.1:8000
+- **Documentación API**: http://127.0.0.1:8000/api/docs/
+- **Admin Django**: http://127.0.0.1:8000/admin/
 
 ---
 
+## 📚 Documentación
+
+Toda la documentación técnica está en **[`docs/`](./docs/)**:
+
+- **[API Guide](./docs/API_GUIDE.md)** - Referencia completa de endpoints REST
+- **[Testing Guide](./docs/TESTING.md)** - Configuración de pytest y vitest
+- **[Theme System](./docs/THEME_SYSTEM_DOCS.md)** - Sistema de temas CSS
+- **[Role-Based Views](./docs/ROLE_BASED_VIEWS.md)** - Permisos y vistas por rol
+- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Solución de problemas comunes
+
+Ver [índice completo](./docs/README.md) para más guías.
+
+---
+
+## 📊 Lógica de Calificación
+
+El sistema calcula notas automáticamente según el estado de los ejercicios:
+
+```python
+if ejercicios_verdes == total_ejercicios:
+    nota = 5.0
+elif ejercicios_amarillos / total >= 0.6:
+    nota = 3.0
+else:
+    nota = 5.0 * (ejercicios_verdes / total)
+```
+
+**Estados de ejercicios:**
+- 🟢 **Verde**: Ejercicio completado correctamente
+- 🟡 **Amarillo**: Ejercicio con observaciones
+- 🔴 **Rojo**: Ejercicio incompleto o con errores
+
+---
+
+## 🔐 Sistema de Autenticación
+
+### Registro y Verificación
+1. Usuario se registra → Recibe código de 6 dígitos por email
+2. Ingresa código → Email verificado
+3. Login → Obtiene tokens JWT (access + refresh)
+
+### Endpoints principales
+```
+POST /api/auth/register/         # Registro (rol STUDENT por defecto)
+POST /api/auth/login/            # Login (requiere email verificado)
+POST /api/auth/verify-code/      # Verificar código de 6 dígitos
+POST /api/auth/resend-code/      # Reenviar código
+GET  /api/auth/me/               # Perfil del usuario autenticado
+POST /api/auth/logout/           # Cerrar sesión
+POST /api/auth/token/refresh/    # Renovar access token
+```
+
+### Protecciones
+- Rate limiting en endpoints de autenticación (5 intentos/minuto)
+- Integración con Cloudflare Turnstile anti-bot
+- Códigos de verificación expiran en 15 minutos
+- Tokens JWT con refresh automático
+
+---
+
+## 👥 Sistema de Roles
+
+### Student (Estudiante)
+- Ver materias en las que está inscrito
+- Consultar ejercicios y sus resultados
+- Ver notificaciones personales
+- Dashboard con progreso por materia
+
+### Teacher (Profesor)
+- Crear y gestionar materias propias
+- Agregar ejercicios a sus materias
+- Inscribir estudiantes (manual o CSV)
+- Cargar resultados masivamente (CSV)
+- Ver estadísticas de sus materias
+
+### Admin (Administrador)
+- Acceso total al sistema
+- Gestionar usuarios y roles
+- Ver todas las materias y resultados
+- Acceso al panel de Django Admin
+
+---
+
+## ⚙️ Setup Manual
+
+### Requisitos
+- Python 3.11+
+- MySQL 8+
+- Node 18+
+
+### Backend (Django)
+
+1. **Crear entorno virtual e instalar dependencias**
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\Activate.ps1  # Windows PowerShell
+pip install -r requirements.txt
+```
+
+2. **Configurar variables de entorno**
+```powershell
+copy .env.example .env
+```
+
+Edita `backend/.env`:
+```env
+DJANGO_SECRET_KEY=<genera-con-comando-abajo>
+DB_NAME=devtrack
+DB_USER=devtrack
+DB_PASSWORD=tu_password
+DB_HOST=localhost
+DB_PORT=3306
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+FRONTEND_URL=http://localhost:5173
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+```
+
+Generar secret key:
+```powershell
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+3. **Crear base de datos MySQL**
+```sql
+CREATE DATABASE devtrack CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'devtrack'@'%' IDENTIFIED BY 'tu_password';
+GRANT ALL PRIVILEGES ON devtrack.* TO 'devtrack'@'%';
+FLUSH PRIVILEGES;
+```
+
+4. **Ejecutar migraciones**
+```powershell
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+5. **Iniciar servidor**
+```powershell
+python manage.py runserver
+```
+
+API disponible en: http://127.0.0.1:8000
+
+### Frontend (React + Vite)
+
+1. **Configurar variables de entorno**
+```powershell
+cd frontend
+copy .env.example .env
+```
+
+Edita `frontend/.env`:
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_TURNSTILE_SITE_KEY=0x4AAAAAAB195XyO5y089iC-
+```
+
+2. **Instalar dependencias y ejecutar**
+```powershell
+npm install
+npm run dev
+```
+
+Aplicación disponible en: http://localhost:5173
+
+---
+
+## 🧪 Testing
+
+### Backend (Pytest)
+```powershell
+cd backend
+pytest --cov                           # Con cobertura
+pytest --cov --cov-report=html        # Reporte HTML en htmlcov/
+pytest -v                             # Modo verbose
+pytest courses/tests/                 # Solo app específica
+```
+
+### Frontend (Vitest)
+```powershell
+cd frontend
+npm test                              # Tests en modo watch
+npm run test:coverage                 # Con cobertura
+```
+
+---
+
+## 📦 Carga Masiva de Datos
+
+El sistema permite importar estudiantes y resultados mediante archivos CSV.
+
+### Inscribir Estudiantes
+**Endpoint**: `POST /api/courses/subjects/{id}/enrollments_upload_csv/`
+
+CSV de ejemplo (`samples/enrollments.csv`):
+```csv
+email
+student1@example.com
+student2@example.com
+```
+
+### Cargar Resultados
+**Endpoint**: `POST /api/courses/subjects/{id}/results_upload_csv/`
+
+CSV de ejemplo (`samples/student_results.csv`):
+```csv
+student_email,exercise_name,status,grade,comments
+student1@example.com,Exercise 1,GREEN,5.0,Excelente trabajo
+student2@example.com,Exercise 1,YELLOW,3.5,Mejorar documentación
+```
+
+**Estados válidos**: `GREEN`, `YELLOW`, `RED`
+
+---
+
+## 🔔 Sistema de Notificaciones
+
+Las notificaciones se generan automáticamente mediante signals de Django:
+
+- **Inscripción a materia**: Notifica a estudiante y profesor
+- **Nueva calificación**: Notifica al estudiante
+- **Cambio de rol**: Notifica al usuario afectado
+- **Cambio de contraseña**: Notifica al usuario
+
+Endpoints:
+```
+GET  /api/notifications/              # Listar notificaciones
+POST /api/notifications/{id}/read/    # Marcar como leída
+POST /api/notifications/read_all/     # Marcar todas como leídas
+```
+
+---
+
+## 🚨 Problemas Comunes
+
+### Estudiantes no ven materias
+Las materias se filtran automáticamente por inscripción. Verifica que el estudiante esté inscrito en `Enrollment`.
+
+### Notificaciones duplicadas
+Las notificaciones se generan por signals. Verifica que `courses/apps.py` importe `signals` correctamente.
+
+### Rate limit en desarrollo
+Desactiva en `backend/.env`:
+```env
+RATELIMIT_ENABLE=False
+```
+
+Ver más en [Troubleshooting](./docs/TROUBLESHOOTING.md).
+
+---
+
+## 📝 Licencia
+
+Este proyecto es de código abierto y está disponible bajo la licencia MIT.
+
+---
+
+## 🤝 Contribuciones
+
+Las contribuciones son bienvenidas. Por favor:
+
+1. Haz fork del proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add: AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+---
+
+## 📧 Contacto
+
+**Autor**: Heber Yesid  
+**Repositorio**: [github.com/HeberYesid/DevTrack](https://github.com/HeberYesid/DevTrack)
+
+Para reportar bugs o solicitar features, por favor abre un issue en GitHub.
