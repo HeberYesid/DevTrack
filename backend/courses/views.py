@@ -432,7 +432,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Return notifications for the current user"""
-        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+        return Notification.objects.filter(recipient=self.request.user).order_by('-created_at')
 
     def get_permissions(self):
         # Users can only list and update their own notifications
@@ -442,11 +442,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def mark_all_read(self, request):
         """Mark all notifications as read for current user"""
         updated = Notification.objects.filter(
-            user=request.user,
+            recipient=request.user,
             is_read=False
         ).update(is_read=True)
         return Response({
-            'message': f'{updated} notificaciones marcadas como leídas',
+            'message': f'{updated} notificaciones marcadas como le\u00eddas',
             'updated_count': updated
         })
 
@@ -465,10 +465,20 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def unread_count(self, request):
         """Get count of unread notifications"""
         count = Notification.objects.filter(
-            user=request.user,
+            recipient=request.user,
             is_read=False
         ).count()
         return Response({'unread_count': count})
+    
+    @decorators.action(detail=False, methods=['post'], url_path='delete-all')
+    def delete_all(self, request):
+        """Delete all notifications for current user"""
+        count = Notification.objects.filter(recipient=request.user).count()
+        Notification.objects.filter(recipient=request.user).delete()
+        return Response({
+            'message': f'{count} notificaciones eliminadas',
+            'deleted': count
+        })
 
 
 class StudentDashboardView(views.APIView):
