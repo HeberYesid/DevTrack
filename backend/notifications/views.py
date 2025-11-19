@@ -32,8 +32,21 @@ class NotificationViewSet(viewsets.ModelViewSet):
         count = self.get_queryset().filter(is_read=False).count()
         return Response({'unread': count})
 
+    @decorators.action(detail=True, methods=['post'], url_path='mark-read')
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'marked as read'})
+
     @decorators.action(detail=False, methods=['post'], url_path='mark-all-read')
     def mark_all_read(self, request):
         qs = self.get_queryset().filter(is_read=False)
         updated = qs.update(is_read=True)
         return Response({'updated': updated})
+    
+    @decorators.action(detail=False, methods=['delete'], url_path='delete-all')
+    def delete_all(self, request):
+        count = self.get_queryset().count()
+        self.get_queryset().delete()
+        return Response({'deleted': count}, status=status.HTTP_204_NO_CONTENT)
