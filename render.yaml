@@ -9,8 +9,7 @@ services:
     branch: main
     rootDir: backend
     buildCommand: ./build.sh
-    preDeployCommand: python manage.py migrate
-    startCommand: gunicorn config.wsgi:application
+    startCommand: ./start.sh
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
