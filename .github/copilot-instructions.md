@@ -6,20 +6,11 @@
 
 - **Backend**: Django 5.0 + DRF, MySQL, JWT auth, three roles (`STUDENT`, `TEACHER`, `ADMIN`)
 - **Frontend**: React 18 + Vite, role-based routing, theme system (dark/light)
-- **Deployment**: Docker Compose (dev/prod configs), PowerShell scripts for Windows
 
 ## Essential Workflows
 
-### Start Development (Docker - Primary Method)
-```powershell
-.\scripts\docker-dev.ps1      # Starts all services
-.\scripts\docker-logs.ps1     # View logs
-.\scripts\docker-shell.ps1 backend  # Django shell/manage.py
-.\scripts\docker-test.ps1     # Run backend tests
-.\scripts\docker-clean.ps1    # Clean everything
-```
 
-**Access**: Frontend http://localhost:5173, Backend http://localhost:8000, API Docs http://localhost:8000/api/docs/
+
 
 ### Testing
 ```bash
@@ -30,24 +21,7 @@ cd backend && pytest --cov
 cd frontend && npm test
 ```
 
-## CRITICAL: Windows Line Ending Issues
 
-**Problem**: When cloning on Windows, shell scripts get CRLF endings which break Docker containers:
-```
-exec ./entrypoint.sh: no such file or directory
-```
-
-**Solution**: The `.gitattributes` file ensures LF endings. If you cloned before this was added, fix manually:
-```powershell
-# Fix line endings in backend scripts
-cd backend
-$content = Get-Content entrypoint.sh -Raw; $content = $content -replace "`r`n", "`n"; [System.IO.File]::WriteAllText("$PWD\entrypoint.sh", $content, [System.Text.UTF8Encoding]::new($false))
-$content = Get-Content wait-for-it.sh -Raw; $content = $content -replace "`r`n", "`n"; [System.IO.File]::WriteAllText("$PWD\wait-for-it.sh", $content, [System.Text.UTF8Encoding]::new($false))
-
-# Restart Docker
-docker-compose down
-.\scripts\docker-dev.ps1
-```
 
 ## Critical Patterns
 
@@ -139,14 +113,7 @@ export const getSubjects = async () => {
 
 ## Environment Setup
 
-### Backend `.env` (required)
-```bash
-DJANGO_SECRET_KEY=...  # Generate: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-DB_NAME=devtrack
-DB_HOST=db  # 'localhost' manual, 'db' Docker
-CORS_ALLOWED_ORIGINS=http://localhost:5173
-EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-```
+
 
 ### Frontend `.env`
 ```bash
@@ -154,13 +121,7 @@ VITE_API_BASE_URL=http://localhost:8000
 VITE_TURNSTILE_SITE_KEY=0x4AAAAAAB195XyO5y089iC-
 ```
 
-## Common Issues
 
-1. **"exec ./entrypoint.sh: no such file"**: Line ending issue - see CRITICAL section above
-2. **403 Forbidden**: Check role permissions AND object-level `IsOwnerTeacherOrAdmin`
-3. **Students can't see subjects**: Filtered in `get_queryset()` by enrollment
-4. **Notifications missing**: Verify signals imported in `courses/apps.py` (line 10)
-5. **Rate limit in dev**: Set `RATELIMIT_ENABLE=False` in backend `.env`
 
 ## Grade Calculation Logic
 
@@ -191,5 +152,4 @@ Status enum: `GREEN`/`YELLOW`/`RED` in `StudentExerciseResult.Status`.
 See `/docs` for comprehensive guides:
 - `API_GUIDE.md` - Full REST API reference
 - `TESTING.md` - Pytest/Vitest setup
-- `DOCKER_SETUP.md` - Docker workflow
 - `THEME_SYSTEM_DOCS.md` - CSS variables
