@@ -7,20 +7,35 @@ echo "Running database migrations..."
 python manage.py migrate --noinput
 
 echo "Creating superuser if it doesn't exist..."
-python manage.py shell -c "
+python -c "
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+django.setup()
+
 from accounts.models import User
-if not User.objects.filter(email='admin@devtrack.com').exists():
-    User.objects.create_superuser(
-        email='admin@devtrack.com',
+
+email = 'admin@devtrack.com'
+password = 'admin123'
+
+if not User.objects.filter(email=email).exists():
+    user = User.objects.create(
+        username=email,
+        email=email,
         first_name='Admin',
         last_name='DevTrack',
-        password='admin123',
-        role='ADMIN'
+        role='ADMIN',
+        is_staff=True,
+        is_superuser=True,
+        is_email_verified=True
     )
-    print('Superuser created: admin@devtrack.com / admin123')
+    user.set_password(password)
+    user.save()
+    print(f'✅ Superuser created: {email} / {password}')
+    print('⚠️  IMPORTANT: Change password after first login!')
 else:
-    print('Superuser already exists')
-" || echo "Superuser creation skipped"
+    print(f'✅ Superuser already exists: {email}')
+" || echo "⚠️ Superuser creation skipped"
 
 echo "Starting Gunicorn server..."
 exec gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
