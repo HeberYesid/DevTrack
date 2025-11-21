@@ -231,6 +231,15 @@ SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'Strict' if same-origin only
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 
+# CSRF Trusted Origins (CRÍTICO para producción)
+CSRF_TRUSTED_ORIGINS = []
+csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if csrf_origins:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins.split(',')]
+elif not DEBUG:
+    # En producción sin CSRF_TRUSTED_ORIGINS explícito, usar ALLOWED_HOSTS
+    CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in ALLOWED_HOSTS if host != '*']
+
 # In production with HTTPS, uncomment:
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
