@@ -42,8 +42,12 @@ set -o errexit
 
 pip install -r requirements.txt
 python manage.py collectstatic --noinput
-python manage.py migrate
+
+# NOTE: Las migraciones se ejecutan DESPUÉS del build, 
+# cuando la BD ya está disponible
 ```
+
+**⚠️ IMPORTANTE**: Las migraciones NO se ejecutan durante el build porque la base de datos no está disponible en ese momento. Se ejecutan en el "Pre-Deploy Command" que verás más adelante.
 
 ### 1.3 Actualizar `settings.py` para soportar PostgreSQL
 
@@ -118,8 +122,11 @@ git push origin main
    - **Root Directory**: `backend`
    - **Runtime**: Python 3
    - **Build Command**: `./build.sh`
+   - **Pre-Deploy Command**: `python manage.py migrate` ⭐ **IMPORTANTE**
    - **Start Command**: `gunicorn config.wsgi:application`
    - **Instance Type**: **Free**
+
+**⚠️ CRÍTICO**: El **Pre-Deploy Command** es donde van las migraciones. Esto se ejecuta DESPUÉS del build cuando la BD ya está disponible.
 
 ### 3.3 Crear Base de Datos PostgreSQL
 
@@ -384,6 +391,22 @@ Tu app DevTrack ahora está 100% GRATIS en Render.com
 ---
 
 ## 🆘 Troubleshooting
+
+### Error: "Can't connect to MySQL server on '127.0.0.1'"
+**Causa**: Django intenta conectarse a MySQL durante el build, pero:
+1. Render usa PostgreSQL (no MySQL)
+2. La BD no está disponible durante build time
+
+**Solución**: 
+1. **NO ejecutar migraciones en `build.sh`**
+2. Usar **Pre-Deploy Command** en Render:
+   - Ve a tu Web Service → Settings
+   - En **Pre-Deploy Command**: `python manage.py migrate`
+3. El `build.sh` debe tener solo:
+   ```bash
+   pip install -r requirements.txt
+   python manage.py collectstatic --noinput
+   ```
 
 ### Error: "Application failed to respond"
 **Causa**: Backend dormido o error en el código
