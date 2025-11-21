@@ -141,6 +141,40 @@ Ver [índice completo](./docs/README.md) para más guías.
 
 ---
 
+## 🌐 Despliegue en Producción
+
+### ☁️ Opciones Gratuitas Recomendadas
+
+DevTrack está listo para desplegarse en servicios gratuitos en la nube:
+
+#### 🏆 **Render.com** (Recomendada)
+- ✅ **100% gratis** (750 horas/mes)
+- ✅ Backend + Base de datos PostgreSQL incluida
+- ✅ Deploy automático desde GitHub
+- ⚠️ Backend se duerme después de 15 min sin uso
+
+**Guía completa**: [docs/RENDER_DEPLOY.md](./docs/RENDER_DEPLOY.md)
+
+#### 🥈 **Fly.io**
+- ✅ 3 VMs gratis (siempre activas)
+- ✅ PostgreSQL incluida (3GB)
+- ⚠️ Requiere CLI y tarjeta de crédito
+
+#### 🥉 **Railway.app**
+- ⚠️ Ya no es totalmente gratis (~$5-10/mes)
+- ✅ Soporta MySQL y PostgreSQL
+- ✅ Configuración muy fácil
+
+**Comparación detallada**: [docs/FREE_HOSTING_OPTIONS.md](./docs/FREE_HOSTING_OPTIONS.md)
+
+### 📦 Frontend en Vercel (Gratis)
+```powershell
+# El frontend ya tiene vercel.json configurado
+# Solo conecta tu repo en vercel.com
+```
+
+---
+
 ## 📊 Lógica de Calificación
 
 El sistema calcula notas automáticamente según el estado de los ejercicios:
