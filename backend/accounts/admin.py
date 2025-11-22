@@ -1,21 +1,31 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from datetime import timedelta
 from .models import User, EmailVerificationToken, EmailVerificationCode, TeacherInvitationCode, ContactMessage
 from .utils import send_teacher_invitation_email
 
+# Ocultar el modelo Group del admin ya que no se usa en este proyecto
+admin.site.unregister(Group)
+
+# Personalizar títulos del admin
+admin.site.site_header = "DevTrack - Panel de Administración"
+admin.site.site_title = "DevTrack Admin"
+admin.site.index_title = "Gestión del Sistema"
+
 
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
+    """Gestión de usuarios del sistema (Estudiantes, Profesores, Administradores)"""
     # Show extra fields in change form
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        (_('Personal info'), {'fields': ('first_name', 'last_name', 'email')}),
-        (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
-        (_('DevTrack'), {'fields': ('role', 'is_email_verified')}),
+        (_('Información Personal'), {'fields': ('first_name', 'last_name', 'email')}),
+        (_('Permisos y Acceso'), {'fields': ('is_active', 'is_staff', 'is_superuser')}),
+        (_('Fechas Importantes'), {'fields': ('last_login', 'date_joined')}),
+        (_('DevTrack - Configuración'), {'fields': ('role', 'is_email_verified')}),
     )
 
     # Show extra fields in add form and use password1/password2 flow
@@ -34,30 +44,52 @@ class UserAdmin(DjangoUserAdmin):
 
 @admin.register(EmailVerificationToken)
 class EmailVerificationTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'token', 'created_at', 'expires_at', 'used')
-    search_fields = ('user__email', 'token')
+    """Tokens de verificación de email (Sistema interno - Solo para debugging)"""
+    list_display = ('user', 'token_preview', 'created_at', 'expires_at', 'used')
+    search_fields = ('user__email',)
+    readonly_fields = ('token', 'created_at', 'expires_at', 'user')
+    list_filter = ('used', 'created_at')
+    
+    def token_preview(self, obj):
+        return obj.token[:20] + '...' if len(obj.token) > 20 else obj.token
+    token_preview.short_description = 'Token'
+    
+    def has_add_permission(self, request):
+        # No permitir crear manualmente
+        return False
 
 
 @admin.register(EmailVerificationCode)
 class EmailVerificationCodeAdmin(admin.ModelAdmin):
-    list_display = ('user', 'code', 'code_type', 'created_at', 'expires_at', 'is_used', 'is_valid')
+    """Códigos de verificación de 6 dígitos enviados por email"""
+    list_display = ('user', 'code', 'code_type_display', 'created_at', 'expires_at', 'is_used', 'is_valid')
     list_filter = ('is_used', 'code_type', 'created_at')
     search_fields = ('user__email', 'code')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'user', 'code', 'expires_at')
+    
+    def code_type_display(self, obj):
+        return obj.get_code_type_display()
+    code_type_display.short_description = 'Tipo'
     
     def is_valid(self, obj):
         return obj.is_valid()
     is_valid.boolean = True
     is_valid.short_description = 'Válido'
+    
+    def has_add_permission(self, request):
+        # No permitir crear manualmente
+        return False
+    is_valid.short_description = 'Válido'
 
 
 @admin.register(TeacherInvitationCode)
 class TeacherInvitationCodeAdmin(admin.ModelAdmin):
+    """Códigos de invitación para registro de profesores"""
     list_display = ('email', 'code', 'created_at', 'expires_at', 'used', 'is_valid', 'used_by')
     list_filter = ('used', 'created_at')
     search_fields = ('email', 'code')
     readonly_fields = ('created_at', 'used_at', 'used_by', 'code')
-    exclude = ('created_by',)  # Ocultar el campo created_by del formulario
+    exclude = ('created_by',)
     actions = ['send_invitation_emails']
     
     def is_valid(self, obj):
@@ -96,10 +128,8 @@ class TeacherInvitationCodeAdmin(admin.ModelAdmin):
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
-    """
-    Admin para gestionar mensajes de contacto
-    """
-    list_display = ('id', 'name', 'email', 'subject', 'message_preview', 'created_at', 'is_read')
+    """Mensajes del formulario de contacto público"""
+    list_display = ('id', 'name', 'email', 'subject_display', 'message_preview', 'created_at', 'is_read')
     list_filter = ('is_read', 'subject', 'created_at')
     search_fields = ('name', 'email', 'message')
     readonly_fields = ('created_at', 'message_formatted')
@@ -117,6 +147,11 @@ class ContactMessageAdmin(admin.ModelAdmin):
             'fields': ('is_read', 'created_at')
         }),
     )
+    
+    def subject_display(self, obj):
+        """Mostrar el asunto en español"""
+        return obj.get_subject_display()
+    subject_display.short_description = 'Asunto'
     
     def message_preview(self, obj):
         """Mostrar vista previa del mensaje en la lista"""
