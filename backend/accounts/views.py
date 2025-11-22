@@ -372,7 +372,7 @@ class CheckUserExistsView(APIView):
 class ContactMessageView(APIView):
     """
     Vista para recibir mensajes del formulario de contacto público.
-    No requiere autenticación.
+    No requiere autenticación pero sí verificación de Turnstile.
     """
     permission_classes = [permissions.AllowAny]
     
@@ -383,6 +383,23 @@ class ContactMessageView(APIView):
         if not serializer.is_valid():
             return Response(
                 {'error': 'Datos inválidos', 'details': serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar Turnstile
+        turnstile_token = serializer.validated_data.get('turnstile_token')
+        
+        # Obtener IP del cliente
+        remote_ip = request.META.get('HTTP_X_FORWARDED_FOR')
+        if remote_ip:
+            remote_ip = remote_ip.split(',')[0].strip()
+        else:
+            remote_ip = request.META.get('REMOTE_ADDR')
+        
+        from .utils import verify_turnstile_token
+        if not verify_turnstile_token(turnstile_token, remote_ip):
+            return Response(
+                {'error': 'Verificación de seguridad fallida. Por favor intenta de nuevo.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

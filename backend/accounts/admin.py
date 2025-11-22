@@ -99,23 +99,42 @@ class ContactMessageAdmin(admin.ModelAdmin):
     """
     Admin para gestionar mensajes de contacto
     """
-    list_display = ('id', 'name', 'email', 'subject', 'created_at', 'is_read')
+    list_display = ('id', 'name', 'email', 'subject', 'message_preview', 'created_at', 'is_read')
     list_filter = ('is_read', 'subject', 'created_at')
     search_fields = ('name', 'email', 'message')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'message_formatted')
     actions = ['mark_as_read', 'mark_as_unread']
+    list_per_page = 20
     
     fieldsets = (
         ('Información del Remitente', {
             'fields': ('name', 'email')
         }),
         ('Mensaje', {
-            'fields': ('subject', 'message')
+            'fields': ('subject', 'message_formatted')
         }),
         ('Estado', {
             'fields': ('is_read', 'created_at')
         }),
     )
+    
+    def message_preview(self, obj):
+        """Mostrar vista previa del mensaje en la lista"""
+        if len(obj.message) > 100:
+            return obj.message[:100] + '...'
+        return obj.message
+    message_preview.short_description = 'Vista previa del mensaje'
+    
+    def message_formatted(self, obj):
+        """Mostrar el mensaje completo con mejor formato en el detalle"""
+        from django.utils.html import format_html
+        return format_html(
+            '<div style="background: #f8f9fa; padding: 15px; border-radius: 5px; '
+            'border-left: 4px solid #007bff; white-space: pre-wrap; font-family: '
+            'Arial, sans-serif; line-height: 1.6;">{}</div>',
+            obj.message
+        )
+    message_formatted.short_description = 'Mensaje completo'
     
     def mark_as_read(self, request, queryset):
         """Marcar mensajes como leídos"""
@@ -128,4 +147,3 @@ class ContactMessageAdmin(admin.ModelAdmin):
         updated = queryset.update(is_read=False)
         self.message_user(request, f"{updated} mensaje(s) marcado(s) como no leído(s).")
     mark_as_unread.short_description = "Marcar como no leído"
-

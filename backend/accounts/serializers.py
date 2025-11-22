@@ -254,27 +254,70 @@ class ContactMessageSerializer(serializers.Serializer):
     """
     Serializer para mensajes de contacto del formulario público
     """
-    name = serializers.CharField(max_length=200, required=True)
-    email = serializers.EmailField(required=True)
+    name = serializers.CharField(
+        max_length=200, 
+        required=True,
+        error_messages={
+            'required': 'El nombre es obligatorio',
+            'max_length': 'El nombre no puede exceder 200 caracteres'
+        }
+    )
+    email = serializers.EmailField(
+        required=True,
+        error_messages={
+            'required': 'El correo electrónico es obligatorio',
+            'invalid': 'Ingresa un correo electrónico válido'
+        }
+    )
     subject = serializers.ChoiceField(
         choices=['soporte', 'registro', 'calificaciones', 'profesor', 'bug', 'sugerencia', 'otro'],
-        required=True
+        required=True,
+        error_messages={
+            'required': 'Debes seleccionar un asunto',
+            'invalid_choice': 'Selecciona un asunto válido'
+        }
     )
-    message = serializers.CharField(required=True, min_length=10)
+    message = serializers.CharField(
+        required=True, 
+        min_length=10,
+        max_length=2000,
+        error_messages={
+            'required': 'El mensaje es obligatorio',
+            'min_length': 'El mensaje debe tener al menos 10 caracteres',
+            'max_length': 'El mensaje no puede exceder 2000 caracteres'
+        }
+    )
+    turnstile_token = serializers.CharField(
+        write_only=True, 
+        required=True,
+        error_messages={
+            'required': 'Debes completar la verificación de seguridad'
+        }
+    )
     
     def validate_email(self, value):
         """Validar formato de email"""
         return value.lower().strip()
     
     def validate_name(self, value):
-        """Validar que el nombre no esté vacío"""
-        if not value.strip():
+        """Validar que el nombre no esté vacío y contenga solo caracteres válidos"""
+        value = value.strip()
+        if not value:
             raise serializers.ValidationError("El nombre no puede estar vacío")
-        return value.strip()
+        
+        # Validar que contenga solo letras, espacios, guiones, apóstrofes y acentos
+        import re
+        if not re.match(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$", value):
+            raise serializers.ValidationError("El nombre solo puede contener letras, espacios y guiones")
+        
+        return value
     
     def validate_message(self, value):
         """Validar longitud del mensaje"""
-        if len(value.strip()) < 10:
+        value = value.strip()
+        if len(value) < 10:
             raise serializers.ValidationError("El mensaje debe tener al menos 10 caracteres")
-        return value.strip()
+        if len(value) > 2000:
+            raise serializers.ValidationError("El mensaje no puede exceder 2000 caracteres")
+        return value
 
