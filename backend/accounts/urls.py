@@ -12,7 +12,8 @@ from .views import (
     ChangePasswordView,
     ForgotPasswordView,
     ResetPasswordView,
-    CheckUserExistsView
+    CheckUserExistsView,
+    ContactMessageView
 )
 
 urlpatterns = [
@@ -28,5 +29,6 @@ urlpatterns = [
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('check-user-exists/', CheckUserExistsView.as_view(), name='check-user-exists'),
+    path('contact/', ContactMessageView.as_view(), name='contact'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

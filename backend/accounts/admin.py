@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from datetime import timedelta
-from .models import User, EmailVerificationToken, EmailVerificationCode, TeacherInvitationCode
+from .models import User, EmailVerificationToken, EmailVerificationCode, TeacherInvitationCode, ContactMessage
 from .utils import send_teacher_invitation_email
 
 
@@ -92,3 +92,40 @@ class TeacherInvitationCodeAdmin(admin.ModelAdmin):
                 pass
         self.message_user(request, f"{sent} emails enviados exitosamente.")
     send_invitation_emails.short_description = "Enviar/Reenviar emails de invitación"
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    """
+    Admin para gestionar mensajes de contacto
+    """
+    list_display = ('id', 'name', 'email', 'subject', 'created_at', 'is_read')
+    list_filter = ('is_read', 'subject', 'created_at')
+    search_fields = ('name', 'email', 'message')
+    readonly_fields = ('created_at',)
+    actions = ['mark_as_read', 'mark_as_unread']
+    
+    fieldsets = (
+        ('Información del Remitente', {
+            'fields': ('name', 'email')
+        }),
+        ('Mensaje', {
+            'fields': ('subject', 'message')
+        }),
+        ('Estado', {
+            'fields': ('is_read', 'created_at')
+        }),
+    )
+    
+    def mark_as_read(self, request, queryset):
+        """Marcar mensajes como leídos"""
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f"{updated} mensaje(s) marcado(s) como leído(s).")
+    mark_as_read.short_description = "Marcar como leído"
+    
+    def mark_as_unread(self, request, queryset):
+        """Marcar mensajes como no leídos"""
+        updated = queryset.update(is_read=False)
+        self.message_user(request, f"{updated} mensaje(s) marcado(s) como no leído(s).")
+    mark_as_unread.short_description = "Marcar como no leído"
+

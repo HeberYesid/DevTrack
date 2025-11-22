@@ -125,3 +125,34 @@ class TeacherInvitationCode(models.Model):
     def __str__(self):
         status = "Usado" if self.used else "Disponible"
         return f"{self.email} - {self.code} ({status})"
+
+
+class ContactMessage(models.Model):
+    """
+    Modelo para almacenar mensajes de contacto del formulario público
+    """
+    SUBJECT_CHOICES = (
+        ('soporte', 'Soporte Técnico'),
+        ('registro', 'Problema con Registro'),
+        ('calificaciones', 'Consulta sobre Calificaciones'),
+        ('profesor', 'Solicitud de Acceso como Profesor'),
+        ('bug', 'Reportar un Error'),
+        ('sugerencia', 'Sugerencia o Mejora'),
+        ('otro', 'Otro'),
+    )
+    
+    name = models.CharField(max_length=200, help_text="Nombre completo del remitente")
+    email = models.EmailField(help_text="Email de contacto")
+    subject = models.CharField(max_length=50, choices=SUBJECT_CHOICES, help_text="Asunto del mensaje")
+    message = models.TextField(help_text="Contenido del mensaje")
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False, help_text="Marca si el mensaje fue leído")
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Mensaje de Contacto"
+        verbose_name_plural = "Mensajes de Contacto"
+    
+    def __str__(self):
+        return f"{self.name} - {self.get_subject_display()} ({self.created_at.strftime('%Y-%m-%d')})"
+

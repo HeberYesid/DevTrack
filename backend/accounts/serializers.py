@@ -248,3 +248,33 @@ class RegisterTeacherSerializer(serializers.ModelSerializer):
         # Send verification code email
         send_verification_code_email(user)
         return user
+
+
+class ContactMessageSerializer(serializers.Serializer):
+    """
+    Serializer para mensajes de contacto del formulario público
+    """
+    name = serializers.CharField(max_length=200, required=True)
+    email = serializers.EmailField(required=True)
+    subject = serializers.ChoiceField(
+        choices=['soporte', 'registro', 'calificaciones', 'profesor', 'bug', 'sugerencia', 'otro'],
+        required=True
+    )
+    message = serializers.CharField(required=True, min_length=10)
+    
+    def validate_email(self, value):
+        """Validar formato de email"""
+        return value.lower().strip()
+    
+    def validate_name(self, value):
+        """Validar que el nombre no esté vacío"""
+        if not value.strip():
+            raise serializers.ValidationError("El nombre no puede estar vacío")
+        return value.strip()
+    
+    def validate_message(self, value):
+        """Validar longitud del mensaje"""
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError("El mensaje debe tener al menos 10 caracteres")
+        return value.strip()
+

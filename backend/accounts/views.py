@@ -10,14 +10,15 @@ from django.contrib.auth import get_user_model
 from datetime import timedelta
 import random
 
-from .models import EmailVerificationToken, EmailVerificationCode
+from .models import EmailVerificationToken, EmailVerificationCode, ContactMessage
 from .serializers import (
     RegisterSerializer, 
     LoginSerializer, 
     UserSerializer, 
     VerifyCodeSerializer, 
     ResendCodeSerializer,
-    RegisterTeacherSerializer
+    RegisterTeacherSerializer,
+    ContactMessageSerializer
 )
 from .utils import send_verification_code_email
 from .ratelimit import ratelimit_auth, ratelimit_strict_auth, ratelimit_email
@@ -366,4 +367,41 @@ class CheckUserExistsView(APIView):
                 {'exists': False, 'detail': 'Usuario no encontrado'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+class ContactMessageView(APIView):
+    """
+    Vista para recibir mensajes del formulario de contacto público.
+    No requiere autenticación.
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        """Crear un nuevo mensaje de contacto"""
+        serializer = ContactMessageSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(
+                {'error': 'Datos inválidos', 'details': serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Guardar el mensaje en la base de datos
+        contact_message = ContactMessage.objects.create(
+            name=serializer.validated_data['name'],
+            email=serializer.validated_data['email'],
+            subject=serializer.validated_data['subject'],
+            message=serializer.validated_data['message']
+        )
+        
+        # TODO: Opcionalmente enviar email de notificación al admin
+        # send_contact_notification_email(contact_message)
+        
+        return Response(
+            {
+                'message': 'Mensaje enviado exitosamente. Te responderemos pronto.',
+                'id': contact_message.id
+            },
+            status=status.HTTP_201_CREATED
+        )
 
