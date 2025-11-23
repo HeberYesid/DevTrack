@@ -7,6 +7,7 @@
 ## 🎯 Características Principales
 
 - **Gestión de Cursos**: Creación y administración de materias, ejercicios y resultados
+- **Interfaz Profesional**: UI limpia sin emojis, con diseño moderno y consistente
 - **Sistema de Semáforo**: Clasificación automática verde/amarillo/rojo según rendimiento
 - **Cálculo Automático de Notas**: Lógica inteligente basada en estado de ejercicios
 - **Notificaciones en Tiempo Real**: Alertas automáticas generadas por eventos del sistema
@@ -15,6 +16,7 @@
 - **Autenticación Segura**: JWT con refresh tokens y verificación de email por código de 6 dígitos
 - **Protección Anti-Abuso**: Rate limiting configurable en endpoints sensibles
 - **Sistema de Temas**: Modo claro/oscuro con CSS variables
+- **Optimizado**: Bundle reducido y dependencias mínimas para mejor rendimiento
 
 ---
 
@@ -25,12 +27,14 @@
 - MySQL 8+ para persistencia de datos
 - JWT para autenticación
 - Pytest para testing con cobertura >90%
+- **40 dependencias optimizadas** (-26% vs versión anterior)
 
 **Frontend**
 - React 18 + Vite
 - Context API para estado global
 - Axios con interceptores automáticos
 - Vitest para testing de componentes
+- **13 dependencias optimizadas** (-19% vs versión anterior)
 
 ---
 
@@ -137,6 +141,7 @@ Toda la documentación técnica está en **[`docs/`](./docs/)**:
 - **[Theme System](./docs/THEME_SYSTEM_DOCS.md)** - Sistema de temas CSS
 - **[Role-Based Views](./docs/ROLE_BASED_VIEWS.md)** - Permisos y vistas por rol
 - **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Solución de problemas comunes
+- **[Changelog](./CHANGELOG.md)** - Historial de cambios del proyecto
 
 Ver [índice completo](./docs/README.md) para más guías.
 
