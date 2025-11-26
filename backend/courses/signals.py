@@ -83,7 +83,7 @@ def notify_exercise_created(sender, instance: Exercise, created: bool, **kwargs)
                 Notification(
                     user=enrollment.student,
                     notification_type=Notification.NotificationType.EXERCISE_CREATED,
-                    title=f'📝 Nuevo ejercicio en {subject.code}',
+                    title=f'Nuevo ejercicio en {subject.code}',
                     message=f"Se creó el ejercicio '{instance.name}' en {subject.name}.",
                     link=f'/subjects/{subject.id}',
                 )
