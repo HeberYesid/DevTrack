@@ -81,6 +81,13 @@ class Exercise(models.Model):
     order = models.PositiveIntegerField(default=0)
     deadline = models.DateTimeField(null=True, blank=True, help_text="Fecha límite de entrega")
     description = models.TextField(blank=True, null=True, help_text="Descripción del ejercicio")
+    attachment = models.FileField(
+        upload_to='exercises/%Y/%m/%d/',
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'docx', 'xlsx', 'zip', 'jpg', 'jpeg', 'png'])],
+        help_text="Archivo adjunto para el ejercicio"
+    )
 
     class Meta:
         ordering = ['order', 'id']

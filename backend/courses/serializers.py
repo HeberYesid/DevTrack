@@ -107,7 +107,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Exercise
-        fields = ['id', 'subject', 'name', 'order', 'deadline', 'description', 
+        fields = ['id', 'subject', 'name', 'order', 'deadline', 'description', 'attachment',
                   'deadline_status', 'days_until_deadline', 'is_overdue']
     
     def get_deadline_status(self, obj):
