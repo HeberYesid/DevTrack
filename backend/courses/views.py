@@ -259,6 +259,40 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), IsOwnerTeacherOrAdmin()]
         return super().get_permissions()
 
+    @decorators.action(detail=True, methods=['post'], url_path='submit', parser_classes=[parsers.MultiPartParser])
+    def submit_solution(self, request, pk=None):
+        exercise = self.get_object()
+        user = request.user
+        
+        # Verify user is a student enrolled in the subject
+        try:
+            enrollment = Enrollment.objects.get(subject=exercise.subject, student=user)
+        except Enrollment.DoesNotExist:
+            return Response({'detail': 'No estás inscrito en esta materia.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        # Get or create result
+        result, created = StudentExerciseResult.objects.get_or_create(
+            enrollment=enrollment,
+            exercise=exercise,
+            defaults={'status': 'SUBMITTED'}
+        )
+        
+        # Check if file is provided
+        if 'submission_file' not in request.FILES:
+             return Response({'detail': 'No se proporcionó ningún archivo.'}, status=status.HTTP_400_BAD_REQUEST)
+             
+        file_obj = request.FILES['submission_file']
+        
+        # Validate file size (1MB = 1024 * 1024 bytes)
+        if file_obj.size > 1024 * 1024:
+            return Response({'detail': 'El archivo excede el tamaño máximo de 1MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        result.submission_file = file_obj
+        result.status = 'SUBMITTED'
+        result.save()
+        
+        return Response(StudentExerciseResultSerializer(result).data)
+
 
 class EnrollmentResultsView(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]

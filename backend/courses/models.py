@@ -2,6 +2,7 @@ from __future__ import annotations
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.core.validators import FileExtensionValidator
 
 User = get_user_model()
 
@@ -120,10 +121,18 @@ class StudentExerciseResult(models.Model):
         GREEN = 'GREEN', 'Verde'
         YELLOW = 'YELLOW', 'Amarillo'
         RED = 'RED', 'Rojo'
+        SUBMITTED = 'SUBMITTED', 'Entregado'
 
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='results')
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='results')
     status = models.CharField(max_length=10, choices=Status.choices)
+    submission_file = models.FileField(
+        upload_to='submissions/%Y/%m/%d/',
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'docx', 'xlsx'])],
+        help_text="Archivo de solución (PDF, DOCX, XLSX)"
+    )
     comment = models.TextField(blank=True, null=True, help_text="Comentarios o retroalimentación del profesor")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -148,6 +157,7 @@ class Notification(models.Model):
         RESULT_CREATED = 'RESULT_CREATED', 'Resultado Creado'
         RESULT_UPDATED = 'RESULT_UPDATED', 'Resultado Actualizado'
         EXERCISE_CREATED = 'EXERCISE_CREATED', 'Ejercicio Creado'
+        SUBMISSION_CREATED = 'SUBMISSION_CREATED', 'Entrega Realizada'
         GENERAL = 'GENERAL', 'General'
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_notifications')
