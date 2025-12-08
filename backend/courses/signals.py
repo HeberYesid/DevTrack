@@ -42,9 +42,20 @@ def notify_result_updated(sender, instance: StudentExerciseResult, created: bool
         status_emoji = {
             'GREEN': '🟢',
             'YELLOW': '🟡',
-            'RED': '🔴'
+            'RED': '🔴',
+            'SUBMITTED': '🔵'
         }.get(instance.status, '📊')
         
+        if instance.status == 'SUBMITTED':
+            # Notify Teacher about submission
+            Notification.objects.create(
+                user=subject.teacher,
+                notification_type=Notification.NotificationType.SUBMISSION_CREATED,
+                title=f'📄 Nueva entrega en {subject.code}',
+                message=f"El estudiante {enrollment.student.email} ha entregado el ejercicio '{instance.exercise.name}'.",
+                link=f'/subjects/{subject.id}',
+            )
+
         if created:
             # Notify student about new result
             Notification.objects.create(
@@ -83,7 +94,7 @@ def notify_exercise_created(sender, instance: Exercise, created: bool, **kwargs)
                 Notification(
                     user=enrollment.student,
                     notification_type=Notification.NotificationType.EXERCISE_CREATED,
-                    title=f'📝 Nuevo ejercicio en {subject.code}',
+                    title=f'Nuevo ejercicio en {subject.code}',
                     message=f"Se creó el ejercicio '{instance.name}' en {subject.name}.",
                     link=f'/subjects/{subject.id}',
                 )
