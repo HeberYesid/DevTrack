@@ -134,6 +134,7 @@ class StudentExerciseResultSerializer(serializers.ModelSerializer):
             'exercise', 
             'status',
             'submission_file',
+            'submission_text',
             'comment',
             'student_email',
             'student_name',
