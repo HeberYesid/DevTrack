@@ -9,6 +9,8 @@
 - **Gestión de Cursos**: Creación y administración de materias, ejercicios y resultados
 - **Interfaz Profesional**: UI limpia sin emojis, con diseño moderno y consistente
 - **Sistema de Semáforo**: Clasificación automática verde/amarillo/rojo según rendimiento
+- **Asistente de IA (Gemini)**: Calificación automática y retroalimentación detallada para entregas
+- **Entregas Flexibles**: Soporte para subida de archivos (PDF, DOCX) y respuestas de texto directo
 - **Cálculo Automático de Notas**: Lógica inteligente basada en estado de ejercicios
 - **Notificaciones en Tiempo Real**: Alertas automáticas generadas por eventos del sistema
 - **Carga Masiva de Datos**: Importación CSV de estudiantes y resultados
@@ -24,17 +26,16 @@
 
 **Backend**
 - Django 5.0 + Django REST Framework
+- **Google Gemini 2.0 Flash** para IA generativa
 - MySQL 8+ para persistencia de datos
 - JWT para autenticación
-- Pytest para testing con cobertura >90%
-- **40 dependencias optimizadas** (-26% vs versión anterior)
+
 
 **Frontend**
 - React 18 + Vite
 - Context API para estado global
 - Axios con interceptores automáticos
-- Vitest para testing de componentes
-- **13 dependencias optimizadas** (-19% vs versión anterior)
+
 
 ---
 
@@ -77,6 +78,7 @@ DB_PORT=3306
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 FRONTEND_URL=http://localhost:5173
 EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+GEMINI_API_KEY=tu_api_key_de_google_ai_studio
 ```
 
 Generar secret key:
@@ -137,10 +139,6 @@ npm run dev
 Toda la documentación técnica está en **[`docs/`](./docs/)**:
 
 - **[API Guide](./docs/API_GUIDE.md)** - Referencia completa de endpoints REST
-- **[Testing Guide](./docs/TESTING.md)** - Configuración de pytest y vitest
-- **[Theme System](./docs/THEME_SYSTEM_DOCS.md)** - Sistema de temas CSS
-- **[Role-Based Views](./docs/ROLE_BASED_VIEWS.md)** - Permisos y vistas por rol
-- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Solución de problemas comunes
 - **[Changelog](./CHANGELOG.md)** - Historial de cambios del proyecto
 
 Ver [índice completo](./docs/README.md) para más guías.
@@ -183,7 +181,15 @@ DevTrack está listo para desplegarse en servicios gratuitos en la nube:
 
 ## 📊 Lógica de Calificación
 
-El sistema calcula notas automáticamente según el estado de los ejercicios:
+### 🤖 Calificación con IA
+El sistema utiliza **Google Gemini** para analizar automáticamente las entregas (archivos o texto):
+1. El estudiante envía la solución.
+2. La IA analiza el contenido frente a la descripción del ejercicio.
+3. Asigna un estado (Verde/Amarillo/Rojo) y genera un comentario de retroalimentación.
+4. El profesor recibe una notificación y puede validar o editar el resultado.
+
+### 🧮 Cálculo de Nota Final
+El sistema calcula la nota definitiva de la materia según el estado de los ejercicios:
 
 ```python
 if ejercicios_verdes == total_ejercicios:
@@ -283,6 +289,7 @@ DB_PORT=3306
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 FRONTEND_URL=http://localhost:5173
 EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+GEMINI_API_KEY=tu_api_key_de_google_ai_studio
 ```
 
 Generar secret key:
@@ -334,24 +341,6 @@ npm run dev
 Aplicación disponible en: http://localhost:5173
 
 ---
-
-## 🧪 Testing
-
-### Backend (Pytest)
-```powershell
-cd backend
-pytest --cov                           # Con cobertura
-pytest --cov --cov-report=html        # Reporte HTML en htmlcov/
-pytest -v                             # Modo verbose
-pytest courses/tests/                 # Solo app específica
-```
-
-### Frontend (Vitest)
-```powershell
-cd frontend
-npm test                              # Tests en modo watch
-npm run test:coverage                 # Con cobertura
-```
 
 ---
 
