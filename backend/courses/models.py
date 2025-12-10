@@ -140,6 +140,11 @@ class StudentExerciseResult(models.Model):
         validators=[FileExtensionValidator(allowed_extensions=['pdf', 'docx', 'xlsx'])],
         help_text="Archivo de solución (PDF, DOCX, XLSX)"
     )
+    submission_text = models.TextField(
+        blank=True, 
+        null=True, 
+        help_text="Solución en texto (máx 5000 caracteres)"
+    )
     comment = models.TextField(blank=True, null=True, help_text="Comentarios o retroalimentación del profesor")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

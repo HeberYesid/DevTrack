@@ -14,6 +14,7 @@ pymysql.install_as_MySQLdb()
 # Paths and env
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')  # expects a .env file at backend/.env
+load_dotenv(BASE_DIR.parent / '.env')  # also look in project root
 
 # Security
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key')

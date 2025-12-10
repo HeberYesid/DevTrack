@@ -23,6 +23,7 @@ from .serializers import (
 from .permissions import (
     IsOwnerTeacherOrAdmin,
 )
+from .ai_service import generate_grading_feedback, grade_submission
 
 User = get_user_model()
 
@@ -259,7 +260,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), IsOwnerTeacherOrAdmin()]
         return super().get_permissions()
 
-    @decorators.action(detail=True, methods=['post'], url_path='submit', parser_classes=[parsers.MultiPartParser])
+    @decorators.action(detail=True, methods=['post'], url_path='submit', parser_classes=[parsers.MultiPartParser, parsers.JSONParser])
     def submit_solution(self, request, pk=None):
         exercise = self.get_object()
         user = request.user
@@ -277,19 +278,61 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             defaults={'status': 'SUBMITTED'}
         )
         
-        # Check if file is provided
-        if 'submission_file' not in request.FILES:
-             return Response({'detail': 'No se proporcionó ningún archivo.'}, status=status.HTTP_400_BAD_REQUEST)
+        submission_file = request.FILES.get('submission_file')
+        submission_text = request.data.get('submission_text')
+
+        if not submission_file and not submission_text:
+             return Response({'detail': 'Debes proporcionar un archivo o texto de solución.'}, status=status.HTTP_400_BAD_REQUEST)
              
-        file_obj = request.FILES['submission_file']
-        
-        # Validate file size (1MB = 1024 * 1024 bytes)
-        if file_obj.size > 1024 * 1024:
-            return Response({'detail': 'El archivo excede el tamaño máximo de 1MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        if submission_file:
+            # Validate file size (1MB = 1024 * 1024 bytes)
+            if submission_file.size > 1024 * 1024:
+                return Response({'detail': 'El archivo excede el tamaño máximo de 1MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            result.submission_file = submission_file
+
+        if submission_text:
+            if len(submission_text) > 5000:
+                return Response({'detail': 'El texto excede el límite de 5000 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+            result.submission_text = submission_text
             
-        result.submission_file = file_obj
         result.status = 'SUBMITTED'
         result.save()
+
+        # AI Auto-Grading
+        try:
+            file_handle = None
+            file_name = None
+            
+            if result.submission_file:
+                file_handle = result.submission_file.open('rb')
+                file_name = result.submission_file.name
+
+            grading_result = grade_submission(
+                exercise_description=exercise.description,
+                submission_file=file_handle,
+                submission_file_name=file_name,
+                submission_text=result.submission_text
+            )
+            
+            if file_handle:
+                file_handle.close()
+                
+            result.status = grading_result['status']
+            result.comment = grading_result['feedback']
+            result.save()
+
+            # Notify Teacher about AI grading
+            Notification.objects.create(
+                user=exercise.subject.teacher,
+                notification_type=Notification.NotificationType.GENERAL,
+                title=f'🤖 IA Calificó: {exercise.name}',
+                message=f"La IA asignó {result.get_status_display()} a {enrollment.student.email}. Revisa si es correcto.",
+                link=f'/subjects/{exercise.subject.id}',
+            )
+            
+        except Exception as e:
+            print(f"Auto-grading failed: {e}")
+            # Keep as SUBMITTED if AI fails
         
         return Response(StudentExerciseResultSerializer(result).data)
 
@@ -435,6 +478,69 @@ class StudentExerciseResultViewSet(viewsets.ModelViewSet):
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
 
+    @decorators.action(detail=False, methods=['post'], url_path='generate-ai-feedback')
+    def generate_ai_feedback(self, request):
+        """
+        Generate AI feedback for a result.
+        Expects: {
+            "exercise_id": int,
+            "status": "GREEN"|"YELLOW"|"RED",
+            "current_comment": "..." (optional),
+            "student_email": "..." (optional, for context)
+        }
+        """
+        user = request.user
+        if getattr(user, 'role', None) not in ['ADMIN', 'TEACHER']:
+            return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        exercise_id = request.data.get('exercise_id')
+        result_status = request.data.get('status')
+        current_comment = request.data.get('current_comment')
+        student_email = request.data.get('student_email', 'student@example.com')
+
+        if not exercise_id or not result_status:
+            return Response({'detail': 'Faltan datos requeridos (exercise_id, status).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        exercise = get_object_or_404(Exercise, pk=exercise_id)
+        
+        # Check permission (teacher owns subject)
+        if getattr(user, 'role', None) == 'TEACHER':
+            if exercise.subject.teacher_id != user.id:
+                return Response({'detail': 'No tienes permiso para esta materia.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Try to find the student result to get the submission file
+        submission_file = None
+        submission_file_name = None
+        try:
+            # Find the student user first
+            student_user = User.objects.get(email=student_email)
+            # Find the enrollment
+            enrollment = Enrollment.objects.get(subject=exercise.subject, student=student_user)
+            # Find the result
+            result = StudentExerciseResult.objects.get(enrollment=enrollment, exercise=exercise)
+            if result.submission_file:
+                submission_file = result.submission_file.open('rb')
+                submission_file_name = result.submission_file.name
+        except (User.DoesNotExist, Enrollment.DoesNotExist, StudentExerciseResult.DoesNotExist):
+            pass # No submission file found, proceed without it
+
+        try:
+            feedback = generate_grading_feedback(
+                exercise_description=exercise.description or exercise.name,
+                student_email=student_email,
+                status=result_status,
+                current_comment=current_comment,
+                submission_file=submission_file,
+                submission_file_name=submission_file_name
+            )
+            return Response({'feedback': feedback})
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'detail': f'Error interno: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            if submission_file:
+                submission_file.close()
 
 class MyEnrollmentsView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
