@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import viewsets, permissions, status, decorators, parsers, views
 from rest_framework.response import Response
 
-from .models import Subject, Enrollment, Exercise, StudentExerciseResult, Notification
+from .models import Subject, Enrollment, Exercise, StudentExerciseResult, Notification, CalendarEvent
 from .serializers import (
     SubjectSerializer,
     EnrollmentSerializer,
@@ -19,6 +19,7 @@ from .serializers import (
     StudentExerciseResultSerializer,
     CSVUploadSerializer,
     NotificationSerializer,
+    CalendarEventSerializer,
 )
 from .permissions import (
     IsOwnerTeacherOrAdmin,
@@ -739,3 +740,97 @@ class StudentDashboardView(views.APIView):
             'pending_exercises': pending_exercises,
             'recent_results': recent_results_data
         })
+
+
+class CalendarViewSet(viewsets.ModelViewSet):
+    serializer_class = CalendarEventSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if getattr(user, 'role', None) == 'ADMIN':
+            return CalendarEvent.objects.all()
+        if getattr(user, 'role', None) == 'TEACHER':
+            return CalendarEvent.objects.filter(subject__teacher=user)
+        # Students: events for enrolled subjects
+        return CalendarEvent.objects.filter(subject__enrollments__student=user)
+
+    def perform_create(self, serializer):
+        # Ensure teacher owns the subject
+        subject = serializer.validated_data['subject']
+        if self.request.user.role == 'TEACHER' and subject.teacher != self.request.user:
+             raise permissions.PermissionDenied("No puedes crear eventos para materias que no enseñas.")
+        serializer.save()
+
+    @decorators.action(detail=False, methods=['get'])
+    def all_events(self, request):
+        """
+        Returns combined list of CalendarEvents and Exercises (as deadlines)
+        """
+        user = request.user
+        start_date = request.query_params.get('start')
+        end_date = request.query_params.get('end')
+        subject_id = request.query_params.get('subject')
+
+        # 1. Get CalendarEvents
+        events_qs = self.get_queryset()
+        if start_date:
+            events_qs = events_qs.filter(start_time__gte=start_date)
+        if end_date:
+            events_qs = events_qs.filter(end_time__lte=end_date)
+        if subject_id:
+            events_qs = events_qs.filter(subject_id=subject_id)
+
+        # 2. Get Exercises with deadlines
+        exercises_qs = Exercise.objects.filter(deadline__isnull=False).select_related('subject')
+        if getattr(user, 'role', None) == 'TEACHER':
+            exercises_qs = exercises_qs.filter(subject__teacher=user)
+        elif getattr(user, 'role', None) == 'STUDENT':
+            exercises_qs = exercises_qs.filter(subject__enrollments__student=user)
+        
+        if start_date:
+            exercises_qs = exercises_qs.filter(deadline__gte=start_date)
+        if end_date:
+            exercises_qs = exercises_qs.filter(deadline__lte=end_date)
+        if subject_id:
+            exercises_qs = exercises_qs.filter(subject_id=subject_id)
+
+        # 3. Combine and format
+        combined_events = []
+
+        for event in events_qs:
+            combined_events.append({
+                'id': f'event-{event.id}',
+                'title': event.title,
+                'start': event.start_time,
+                'end': event.end_time,
+                'allDay': False,
+                'type': event.event_type,
+                'subject': event.subject.name,
+                'color': self._get_color(event.event_type),
+                'description': event.description
+            })
+
+        for ex in exercises_qs:
+            combined_events.append({
+                'id': f'exercise-{ex.id}',
+                'title': f"Entrega: {ex.name}",
+                'start': ex.deadline,
+                'end': ex.deadline, # Point in time
+                'allDay': False,
+                'type': 'DEADLINE',
+                'subject': ex.subject.name,
+                'color': '#dc3545', # Red for deadlines
+                'description': ex.description
+            })
+
+        return Response(combined_events)
+
+    def _get_color(self, event_type):
+        colors = {
+            'EXAM': '#ffc107', # Yellow
+            'CLASS': '#0d6efd', # Blue
+            'OTHER': '#6c757d', # Grey
+        }
+        return colors.get(event_type, '#6c757d')
+

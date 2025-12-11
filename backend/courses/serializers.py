@@ -2,7 +2,7 @@ from typing import Any
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Subject, Enrollment, Exercise, StudentExerciseResult, Notification
+from .models import Subject, Enrollment, Exercise, StudentExerciseResult, Notification, CalendarEvent
 
 User = get_user_model()
 
@@ -211,3 +211,13 @@ class NotificationSerializer(serializers.ModelSerializer):
             return f'Hace {days} día{"s" if days > 1 else ""}'
         else:
             return obj.created_at.strftime('%d/%m/%Y %H:%M')
+
+
+class CalendarEventSerializer(serializers.ModelSerializer):
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    
+    class Meta:
+        model = CalendarEvent
+        fields = ['id', 'subject', 'subject_name', 'title', 'description', 'start_time', 'end_time', 'event_type', 'created_at']
+        read_only_fields = ['created_at']
+
