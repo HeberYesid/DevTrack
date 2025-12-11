@@ -1,7 +1,47 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.contrib.auth import get_user_model
 
-from .models import Enrollment, StudentExerciseResult, Exercise, Notification
+from .models import Enrollment, StudentExerciseResult, Exercise, Notification, Subject
+
+User = get_user_model()
+
+
+@receiver(post_save, sender=User)
+def enroll_new_student_in_demo(sender, instance, created, **kwargs):
+    """Enroll new students in a demo subject automatically"""
+    if created and instance.role == 'STUDENT':
+        # Find or create Demo subject
+        demo_subject = Subject.objects.filter(code='DEMO-101').first()
+        
+        if not demo_subject:
+            # Try to find a teacher or admin to own the subject
+            teacher = User.objects.filter(role__in=['TEACHER', 'ADMIN']).first()
+            if teacher:
+                demo_subject = Subject.objects.create(
+                    name='Materia de Demostración',
+                    code='DEMO-101',
+                    teacher=teacher
+                )
+                # Create some demo exercises
+                Exercise.objects.create(
+                    subject=demo_subject,
+                    name='Ejercicio 1: Bienvenida',
+                    order=1,
+                    description='¡Bienvenido a DevTrack! Este es un ejercicio de ejemplo para que conozcas la plataforma.'
+                )
+                Exercise.objects.create(
+                    subject=demo_subject,
+                    name='Ejercicio 2: Tu primer entregable',
+                    order=2,
+                    description='Este es otro ejercicio de ejemplo. En una materia real, aquí verías los detalles de la tarea.'
+                )
+        
+        if demo_subject:
+            Enrollment.objects.get_or_create(
+                student=instance,
+                subject=demo_subject
+            )
 
 
 @receiver(post_save, sender=Enrollment)
