@@ -9,6 +9,7 @@ class Notification(models.Model):
         ENROLLMENT_CREATED = 'ENROLLMENT_CREATED', 'Inscripción creada'
         RESULTS_UPDATED = 'RESULTS_UPDATED', 'Resultados actualizados'
         REPORT_READY = 'REPORT_READY', 'Reporte listo'
+        NEW_MESSAGE = 'NEW_MESSAGE', 'Nuevo mensaje'
         GENERAL = 'GENERAL', 'General'
 
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
