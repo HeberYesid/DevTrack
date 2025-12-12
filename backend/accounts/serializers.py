@@ -324,3 +324,5 @@ class ContactMessageSerializer(serializers.Serializer):
 
 class GoogleLoginSerializer(serializers.Serializer):
     id_token = serializers.CharField(required=True)
+    role = serializers.ChoiceField(choices=User.Roles.choices, required=False)
+    invitation_code = serializers.CharField(required=False, allow_blank=True)
