@@ -159,6 +159,27 @@ class StudentExerciseResult(models.Model):
         return f"{self.enrollment.student.email} - {self.exercise.name}: {self.status}"
 
 
+class CalendarEvent(models.Model):
+    class EventType(models.TextChoices):
+        EXAM = 'EXAM', 'Examen'
+        CLASS = 'CLASS', 'Clase'
+        OTHER = 'OTHER', 'Otro'
+
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='events')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    event_type = models.CharField(max_length=10, choices=EventType.choices, default=EventType.OTHER)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['start_time']
+
+    def __str__(self) -> str:
+        return f"{self.subject.code} - {self.title}"
+
+
 class Notification(models.Model):
     """
     Model for in-app notifications.

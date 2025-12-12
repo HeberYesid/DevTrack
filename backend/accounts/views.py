@@ -5,6 +5,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework_simplejwt.views import TokenRefreshView
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from django.conf import settings
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.contrib.auth import get_user_model
 from datetime import timedelta
@@ -18,7 +22,8 @@ from .serializers import (
     VerifyCodeSerializer, 
     ResendCodeSerializer,
     RegisterTeacherSerializer,
-    ContactMessageSerializer
+    ContactMessageSerializer,
+    GoogleLoginSerializer
 )
 from .utils import send_verification_code_email
 from .ratelimit import ratelimit_auth, ratelimit_strict_auth, ratelimit_email
@@ -422,3 +427,65 @@ class ContactMessageView(APIView):
             status=status.HTTP_201_CREATED
         )
 
+
+class GoogleLoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = GoogleLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data['id_token']
+
+        try:
+            client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+            print(f"🔍 Verifying Google Token. Client ID: {client_id}")
+            
+            # Specify the CLIENT_ID of the app that accesses the backend:
+            # Added clock_skew_in_seconds to handle local dev time differences
+            id_info = id_token.verify_oauth2_token(
+                token, 
+                google_requests.Request(), 
+                client_id,
+                clock_skew_in_seconds=300
+            )
+
+            # ID token is valid. Get the user's Google Account ID from the decoded token.
+            email = id_info['email'].lower()
+            first_name = id_info.get('given_name', '')
+            last_name = id_info.get('family_name', '')
+
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username': email,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'is_email_verified': True,
+                    'role': User.Roles.STUDENT
+                }
+            )
+
+            if created:
+                user.set_unusable_password()
+                user.save()
+            
+            # If user exists but wasn't verified, verify them now
+            if not user.is_email_verified:
+                user.is_email_verified = True
+                user.save()
+
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            })
+
+        except ValueError as e:
+            # Invalid token
+            print(f"❌ Google Token Verification Failed: {str(e)}")
+            return Response({'error': f'Token de Google inválido: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"❌ Google Login Error: {str(e)}")
+            return Response({'error': f'Error interno: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

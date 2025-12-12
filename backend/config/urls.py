@@ -22,6 +22,7 @@ def home_view(request):
             'authentication': '/api/auth/',
             'courses': '/api/courses/',
             'notifications': '/api/notifs/',
+            'messaging': '/api/messaging/',
             'admin_panel': '/admin/',
             'api_documentation': '/api/docs/',
             'api_schema': '/api/schema/',
@@ -44,6 +45,7 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/courses/', include('courses.urls')),
     path('api/notifs/', include('notifications.urls')),
+    path('api/messaging/', include('messaging.urls')),
 ]
 
 if settings.DEBUG:

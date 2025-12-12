@@ -8,7 +8,8 @@ from .views import (
     EnrollmentResultsView,
     MyEnrollmentsView,
     NotificationViewSet,
-    StudentDashboardView
+    StudentDashboardView,
+    CalendarViewSet
 )
 
 router = DefaultRouter()
@@ -16,6 +17,7 @@ router.register(r'subjects', SubjectViewSet, basename='subject')
 router.register(r'exercises', ExerciseViewSet, basename='exercise')
 router.register(r'results', StudentExerciseResultViewSet, basename='result')
 router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'calendar', CalendarViewSet, basename='calendar')
 
 urlpatterns = [
     path('', include(router.urls)),
