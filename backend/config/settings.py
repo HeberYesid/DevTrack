@@ -19,6 +19,7 @@ load_dotenv(BASE_DIR.parent / '.env')  # also look in project root
 # Security
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key')
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 
 # ALLOWED_HOSTS configuration
 # Temporarily allow all hosts for debugging Railway deployment

@@ -321,3 +321,6 @@ class ContactMessageSerializer(serializers.Serializer):
             raise serializers.ValidationError("El mensaje no puede exceder 2000 caracteres")
         return value
 
+
+class GoogleLoginSerializer(serializers.Serializer):
+    id_token = serializers.CharField(required=True)
