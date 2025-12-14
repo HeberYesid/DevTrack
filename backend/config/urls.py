@@ -27,7 +27,7 @@ def home_view(request):
             'api_documentation': '/api/docs/',
             'api_schema': '/api/schema/',
         },
-        'documentation': 'https://devtrack-production-2b1d.up.railway.app/api/docs/',
+        'documentation': 'https://devtrack-ntjm.onrender.com/api/docs/',
         'description': 'Sistema de gestión educativa para rastrear el progreso académico de estudiantes'
     })
 
