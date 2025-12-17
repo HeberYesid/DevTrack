@@ -45,3 +45,7 @@ frontend/.env
 *.bak
 *.swp
 *.tmp
+
+# Database backups and scripts
+backup_full.json
+

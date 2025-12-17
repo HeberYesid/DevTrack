@@ -14,7 +14,7 @@ from django.contrib.auth import get_user_model
 from datetime import timedelta
 import random
 
-from .models import EmailVerificationToken, EmailVerificationCode, ContactMessage
+from .models import EmailVerificationToken, EmailVerificationCode, ContactMessage, TeacherInvitationCode
 from .serializers import (
     RegisterSerializer, 
     LoginSerializer, 
@@ -454,20 +454,54 @@ class GoogleLoginView(APIView):
             first_name = id_info.get('given_name', '')
             last_name = id_info.get('family_name', '')
 
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'username': email,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'is_email_verified': True,
-                    'role': User.Roles.STUDENT
-                }
-            )
+            user = User.objects.filter(email=email).first()
 
-            if created:
-                user.set_unusable_password()
-                user.save()
+            if not user:
+                # Registration logic
+                role = serializer.validated_data.get('role', User.Roles.STUDENT)
+                invitation_code = serializer.validated_data.get('invitation_code')
+                
+                if role == User.Roles.TEACHER:
+                    if not invitation_code:
+                         return Response({'error': 'Se requiere código de invitación para registrarse como profesor.'}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    try:
+                        invitation = TeacherInvitationCode.objects.get(code=invitation_code)
+                        if invitation.used:
+                             return Response({'error': 'Este código de invitación ya ha sido utilizado.'}, status=status.HTTP_400_BAD_REQUEST)
+                        if not invitation.is_valid():
+                             return Response({'error': 'Este código de invitación ha expirado.'}, status=status.HTTP_400_BAD_REQUEST)
+                        if invitation.email.lower() != email:
+                             return Response({'error': 'Este email no corresponde al código de invitación.'}, status=status.HTTP_400_BAD_REQUEST)
+                             
+                        # Valid invitation
+                        user = User.objects.create(
+                            username=email,
+                            email=email,
+                            first_name=first_name,
+                            last_name=last_name,
+                            role=User.Roles.TEACHER,
+                            is_email_verified=True
+                        )
+                        user.set_unusable_password()
+                        user.save()
+                        
+                        invitation.mark_used(user)
+                        
+                    except TeacherInvitationCode.DoesNotExist:
+                        return Response({'error': 'Código de invitación inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    # Student registration
+                    user = User.objects.create(
+                        username=email,
+                        email=email,
+                        first_name=first_name,
+                        last_name=last_name,
+                        role=User.Roles.STUDENT,
+                        is_email_verified=True
+                    )
+                    user.set_unusable_password()
+                    user.save()
             
             # If user exists but wasn't verified, verify them now
             if not user.is_email_verified:
