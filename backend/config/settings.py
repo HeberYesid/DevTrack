@@ -3,13 +3,11 @@ import os
 from datetime import timedelta
 from dotenv import load_dotenv
 import dj_database_url
-import pymysql
 
-
-
-
-# Allow PyMySQL to act as MySQLdb
-pymysql.install_as_MySQLdb()
+# PyMySQL solo se usa si se configura MySQL
+if os.getenv('USE_MYSQL') == 'True':
+    import pymysql
+    pymysql.install_as_MySQLdb()
 
 # Paths and env
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -96,7 +94,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Database configuration
-# Soporta tanto MySQL (local) como PostgreSQL (Render/producción)
+# Soporta SQLite (local dev), MySQL o PostgreSQL (producción)
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
     # Render/Railway provee DATABASE_URL (PostgreSQL o MySQL)
@@ -107,8 +105,8 @@ if DATABASE_URL:
             ssl_require=True if 'postgresql' in DATABASE_URL else False
         )
     }
-else:
-    # Local development (MySQL)
+elif os.getenv('USE_MYSQL') == 'True':
+    # MySQL para desarrollo (opcional)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -120,6 +118,14 @@ else:
             'OPTIONS': {
                 'charset': 'utf8mb4',
             }
+        }
+    }
+else:
+    # SQLite para desarrollo local (por defecto)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
