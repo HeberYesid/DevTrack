@@ -1,6 +1,6 @@
 [phases.setup]
 nixPkgs = ['python311', 'python311Packages.pip', 'python311Packages.virtualenv', 'gcc']
-aptPkgs = ['default-libmysqlclient-dev', 'pkg-config']
+aptPkgs = ['default-libmysqlclient-dev', 'libpq-dev', 'pkg-config']
 
 [phases.install]
 cmds = [
