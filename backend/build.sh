@@ -7,20 +7,17 @@ echo "Python version:"
 python --version
 
 echo "Installing Python dependencies..."
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install psycopg2-binary psycopg-binary
 
 echo "Verifying database adapters..."
-# Check if psycopg2 or psycopg (v3) is available
-if python -c "import psycopg2" 2>/dev/null; then
-    echo "psycopg2 OK"
-elif python -c "import psycopg" 2>/dev/null; then
-    echo "psycopg (v3) OK"
-else
-    echo "ERROR: Neither psycopg2 nor psycopg found in environment"
-    python -m pip list
-    exit 1
-fi
+pip list | grep psycopg
+
+# Try to import and log detail if it fails
+python -c "import psycopg2; print('psycopg2 OK')" || \
+python -c "import psycopg; print('psycopg (v3) OK')" || \
+{ echo "ERROR: Database adapters not found in PYTHONPATH"; python -c "import sys; print(sys.path)"; pip show psycopg2-binary; exit 1; }
 
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
