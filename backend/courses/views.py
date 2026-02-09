@@ -25,6 +25,7 @@ from .permissions import (
     IsOwnerTeacherOrAdmin,
 )
 from .ai_service import generate_grading_feedback, grade_submission
+from .services import process_enrollments_csv, process_results_csv
 
 User = get_user_model()
 
@@ -79,44 +80,16 @@ class SubjectViewSet(viewsets.ModelViewSet):
         subject = self.get_object()
         file_serializer = CSVUploadSerializer(data=request.data)
         file_serializer.is_valid(raise_exception=True)
-        f = file_serializer.validated_data['file']
-        decoded = f.read().decode('utf-8', errors='ignore')
-        reader = csv.DictReader(io.StringIO(decoded))
-        required_cols = {'email'}
-        if not required_cols.issubset(set([c.strip().lower() for c in reader.fieldnames or []])):
-            return Response({'detail': 'CSV inválido. Debe tener columnas: email, (opcional) first_name, last_name.'}, status=400)
-
-        created, existed, errors = 0, 0, []
-        for i, row in enumerate(reader, start=2):
-            email = (row.get('email') or '').strip().lower()
-            if not email:
-                errors.append({'row': i, 'error': 'Email vacío'})
-                continue
-            first_name = (row.get('first_name') or '').strip()
-            last_name = (row.get('last_name') or '').strip()
-            student, _ = User.objects.get_or_create(
-                email=email,
-                defaults={'username': email, 'first_name': first_name, 'last_name': last_name, 'role': 'STUDENT', 'is_active': True}
-            )
-            
-            # update names if provided
-            update_fields = []
-            if first_name and student.first_name != first_name:
-                student.first_name = first_name
-                update_fields.append('first_name')
-            if last_name and student.last_name != last_name:
-                student.last_name = last_name
-                update_fields.append('last_name')
-            if update_fields:
-                student.save(update_fields=update_fields)
-
-            enrollment, was_created = Enrollment.objects.get_or_create(subject=subject, student=student)
-            if was_created:
-                created += 1
-            else:
-                existed += 1
-
-        return Response({'created': created, 'existed': existed, 'errors': errors})
+        
+        try:
+            result = process_enrollments_csv(subject, file_serializer.validated_data['file'])
+            return Response(result)
+        except Exception as e:
+            # If it's a specific validation error from the service
+            if hasattr(e, 'detail'):
+                return Response(e.detail, status=400)
+            # Generic error fallback (though validation errors are preferred)
+            return Response({'detail': str(e)}, status=400)
 
     @decorators.action(detail=True, methods=['get'], url_path='dashboard')
     def dashboard(self, request, pk=None):
@@ -208,63 +181,13 @@ class SubjectViewSet(viewsets.ModelViewSet):
                 errors.append({'row': i, 'error': 'Datos inválidos en columnas requeridas'})
                 continue
 
-            try:
-                student = User.objects.get(email=email)
-            except User.DoesNotExist:
-                errors.append({'row': i, 'error': f'Estudiante no encontrado: {email}'})
-                continue
-
-            try:
-                enrollment = Enrollment.objects.get(subject=subject, student=student)
-            except Enrollment.DoesNotExist:
-                errors.append({'row': i, 'error': f'Estudiante no inscrito en la materia: {email}'})
-                continue
-
-            exercise = exercise_cache.get(ex_name.lower())
-            if not exercise:
-                exercise = Exercise.objects.create(subject=subject, name=ex_name, order=subject.exercises.count())
-                exercise_cache[ex_name.lower()] = exercise
-
-            obj, was_created = StudentExerciseResult.objects.update_or_create(
-                enrollment=enrollment,
-                exercise=exercise,
-                defaults={'status': status_val}
-            )
-            if was_created:
-                created += 1
-            else:
-                updated += 1
-
-        # Create notifications to students and teacher (bulk) via signals or here (optional)
-        return Response({'created': created, 'updated': updated, 'skipped': skipped, 'errors': errors})
-
-
-class ExerciseViewSet(viewsets.ModelViewSet):
-    serializer_class = ExerciseSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        qs = Exercise.objects.select_related('subject', 'subject__teacher')
-        subject_id = self.request.query_params.get('subject')
-        if subject_id:
-            qs = qs.filter(subject_id=subject_id)
-        if getattr(user, 'role', None) == 'ADMIN':
-            return qs
-        if getattr(user, 'role', None) == 'TEACHER':
-            return qs.filter(subject__teacher=user)
-        # students can view exercises of their subjects
-        return qs.filter(subject__enrollments__student=user).distinct()
-
-    def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsOwnerTeacherOrAdmin()]
-        return super().get_permissions()
-
-    @decorators.action(detail=True, methods=['post'], url_path='submit', parser_classes=[parsers.MultiPartParser, parsers.JSONParser])
-    def submit_solution(self, request, pk=None):
-        exercise = self.get_object()
-        user = request.user
+        try:
+            result = process_results_csv(subject, file_serializer.validated_data['file'])
+            return Response(result)
+        except Exception as e:
+            if hasattr(e, 'detail'):
+                return Response(e.detail, status=400)
+            return Response({'detail': str(e)}, status=400
         
         # Verify user is a student enrolled in the subject
         try:
