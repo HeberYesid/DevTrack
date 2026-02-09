@@ -11,6 +11,9 @@ from django.contrib.auth import get_user_model
 from rest_framework import viewsets, permissions, status, decorators, parsers, views
 from rest_framework.response import Response
 
+from accounts.ratelimit import ratelimit_upload
+from django.utils.decorators import method_decorator
+
 from .models import (
     Subject,
     Enrollment,
@@ -33,6 +36,7 @@ from .permissions import (
 )
 from .ai_service import generate_grading_feedback, grade_submission
 from .services import process_enrollments_csv, process_results_csv
+from .validators import validate_file_content
 
 User = get_user_model()
 
@@ -100,6 +104,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
         url_path="enrollments/upload-csv",
         parser_classes=[parsers.MultiPartParser],
     )
+    @method_decorator(ratelimit_upload)
     def upload_enrollments_csv(self, request, pk=None):
         subject = self.get_object()
         file_serializer = CSVUploadSerializer(data=request.data)
@@ -194,6 +199,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
         url_path="results/upload-csv",
         parser_classes=[parsers.MultiPartParser],
     )
+    @method_decorator(ratelimit_upload)
     def upload_results_csv(self, request, pk=None):
         subject = self.get_object()
         file_serializer = CSVUploadSerializer(data=request.data)
@@ -273,6 +279,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         url_path="submit",
         parser_classes=[parsers.MultiPartParser, parsers.JSONParser],
     )
+    @method_decorator(ratelimit_upload)
     def submit_solution(self, request, pk=None):
         exercise = self.get_object()
         user = request.user
@@ -301,6 +308,16 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             )
 
         if submission_file:
+            # Validate magic bytes
+            try:
+                allowed = ['pdf', 'zip', 'rar', 'tar', 'gz', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'txt', 'py', 'js', 'html', 'css', 'java', 'c', 'cpp']
+                validate_file_content(submission_file, allowed_types=allowed)
+            except Exception as e:
+                 # Check if e is ValidationError (has .detail) or not
+                 if hasattr(e, 'detail'):
+                    return Response({'detail': e.detail}, status=status.HTTP_400_BAD_REQUEST)
+                 return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
             # Validate file size (1MB = 1024 * 1024 bytes)
             if submission_file.size > 1024 * 1024:
                 return Response(
