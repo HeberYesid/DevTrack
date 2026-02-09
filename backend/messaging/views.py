@@ -1,8 +1,9 @@
-from rest_framework import viewsets, permissions, status, filters
+from rest_framework import viewsets, permissions, status, filters, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiTypes
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer, CreateMessageSerializer, UserSimpleSerializer
 
@@ -15,12 +16,25 @@ class ConversationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Conversation.objects.filter(participants=self.request.user)
 
+    @extend_schema(
+        summary="Mark conversation as read",
+        request=None,
+        responses={200: OpenApiTypes.OBJECT},
+    )
     @action(detail=True, methods=['post'])
     def read_all(self, request, pk=None):
         conversation = self.get_object()
         conversation.messages.exclude(sender=request.user).update(is_read=True)
         return Response({'status': 'marked as read'})
 
+    @extend_schema(
+        summary="Start conversation",
+        request=inline_serializer(
+            name="StartConversationRequest",
+            fields={"recipient_id": serializers.IntegerField()},
+        ),
+        responses={201: ConversationSerializer},
+    )
     @action(detail=False, methods=['post'])
     def start(self, request):
         recipient_id = request.data.get('recipient_id')

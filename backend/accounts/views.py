@@ -3,12 +3,13 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions, serializers
 from rest_framework_simplejwt.views import TokenRefreshView
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, inline_serializer
 
 from django.contrib.auth import get_user_model
 from datetime import timedelta
@@ -35,6 +36,14 @@ User = get_user_model()
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        summary="Register new user",
+        description="Register a new user and send verification code.",
+        request=RegisterSerializer,
+        responses={
+            201: OpenApiTypes.OBJECT,
+        },
+    )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -46,6 +55,12 @@ class RegisterView(APIView):
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        summary="Login",
+        description="Login with email and password to get JWT tokens.",
+        request=LoginSerializer,
+        responses={200: LoginSerializer},
+    )
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -55,6 +70,18 @@ class LoginView(APIView):
 class VerifyEmailView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        summary="Verify email with token",
+        parameters=[
+            OpenApiParameter(
+                name="token",
+                description="Verification token",
+                required=True,
+                type=str,
+            ),
+        ],
+        responses={200: OpenApiTypes.OBJECT},
+    )
     def get(self, request):
         token_value = request.query_params.get('token')
         if not token_value:
@@ -76,6 +103,11 @@ class VerifyEmailView(APIView):
 class VerifyCodeView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        summary="Verify email with 6-digit code",
+        request=VerifyCodeSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+    )
     def post(self, request):
         serializer = VerifyCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -101,6 +133,11 @@ class VerifyCodeView(APIView):
 class ResendCodeView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        summary="Resend verification code",
+        request=ResendCodeSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+    )
     def post(self, request):
         serializer = ResendCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -120,6 +157,11 @@ class ResendCodeView(APIView):
 class RegisterTeacherView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        summary="Register new teacher",
+        request=RegisterTeacherSerializer,
+        responses={201: OpenApiTypes.OBJECT},
+    )
     def post(self, request):
         serializer = RegisterTeacherSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -132,6 +174,10 @@ class RegisterTeacherView(APIView):
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        summary="Get current user",
+        responses={200: UserSerializer},
+    )
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
@@ -140,11 +186,20 @@ class ProfileView(APIView):
     """View para obtener y actualizar el perfil del usuario autenticado"""
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        summary="Get profile",
+        responses={200: UserSerializer},
+    )
     def get(self, request):
         """Obtener perfil del usuario"""
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Update profile",
+        request=UserSerializer,
+        responses={200: UserSerializer},
+    )
     def patch(self, request):
         """Actualizar perfil del usuario"""
         user = request.user
@@ -340,6 +395,26 @@ class CheckUserExistsView(APIView):
     """
     permission_classes = [permissions.IsAuthenticated]
     
+    @extend_schema(
+        summary="Check if user exists",
+        parameters=[
+            OpenApiParameter(name="email", type=str, required=True),
+        ],
+        responses={
+            200: inline_serializer(
+                name="UserExistsResponse",
+                fields={
+                    "exists": serializers.BooleanField(),
+                    "email": serializers.EmailField(),
+                    "first_name": serializers.CharField(),
+                    "last_name": serializers.CharField(),
+                    "role": serializers.CharField(),
+                    "is_active": serializers.BooleanField(),
+                    "is_verified": serializers.BooleanField(),
+                },
+            )
+        },
+    )
     def get(self, request):
         """
         Verifica si existe un usuario con el email proporcionado.
@@ -381,6 +456,11 @@ class ContactMessageView(APIView):
     """
     permission_classes = [permissions.AllowAny]
     
+    @extend_schema(
+        summary="Send contact message",
+        request=ContactMessageSerializer,
+        responses={201: OpenApiTypes.OBJECT},
+    )
     def post(self, request):
         """Crear un nuevo mensaje de contacto"""
         serializer = ContactMessageSerializer(data=request.data)
@@ -431,6 +511,11 @@ class ContactMessageView(APIView):
 class GoogleLoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        summary="Google Login",
+        request=GoogleLoginSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+    )
     def post(self, request):
         serializer = GoogleLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

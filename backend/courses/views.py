@@ -13,6 +13,8 @@ from rest_framework.response import Response
 
 from accounts.ratelimit import ratelimit_upload
 from django.utils.decorators import method_decorator
+from drf_spectacular.utils import extend_schema, OpenApiTypes, OpenApiParameter, inline_serializer
+from rest_framework import serializers
 
 from .models import (
     Subject,
@@ -69,6 +71,19 @@ class SubjectViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), IsOwnerTeacherOrAdmin()]
         return super().get_permissions()
 
+    @extend_schema(
+        methods=["GET"],
+        summary="List enrollments for a subject",
+        description="Returns a list of students enrolled in the subject.",
+        responses={200: EnrollmentSerializer(many=True)},
+    )
+    @extend_schema(
+        methods=["POST"],
+        summary="Enroll a student",
+        description="Enroll a student in the subject.",
+        request=EnrollmentSerializer,
+        responses={201: EnrollmentSerializer},
+    )
     @decorators.action(detail=True, methods=["get", "post"], url_path="enrollments")
     def enrollments(self, request, pk=None):
         subject = self.get_object()
@@ -98,6 +113,23 @@ class SubjectViewSet(viewsets.ModelViewSet):
                 EnrollmentSerializer(enrollment).data, status=status.HTTP_201_CREATED
             )
 
+    @extend_schema(
+        summary="Upload enrollments via CSV",
+        description="Upload a CSV file to bulk enroll students. Required columns: email. Optional: first_name, last_name.",
+        request=CSVUploadSerializer,
+        responses={
+            200: inline_serializer(
+                name="EnrollmentCSVResponse",
+                fields={
+                    "created": serializers.IntegerField(),
+                    "existed": serializers.IntegerField(),
+                    "errors": serializers.ListField(
+                        child=serializers.DictField()
+                    ),
+                },
+            )
+        },
+    )
     @decorators.action(
         detail=True,
         methods=["post"],
@@ -122,6 +154,25 @@ class SubjectViewSet(viewsets.ModelViewSet):
             # Generic error fallback (though validation errors are preferred)
             return Response({"detail": str(e)}, status=400)
 
+    @extend_schema(
+        summary="Get subject dashboard",
+        description="Returns aggregated stats and grades for the subject.",
+        responses={
+            200: inline_serializer(
+                name="SubjectDashboardResponse",
+                fields={
+                    "subject_id": serializers.IntegerField(),
+                    "subject_code": serializers.CharField(),
+                    "subject_name": serializers.CharField(),
+                    "total_exercises": serializers.IntegerField(),
+                    "enrollments": serializers.ListField(
+                        child=serializers.DictField()
+                    ),
+                    "aggregates": serializers.DictField(),
+                },
+            )
+        },
+    )
     @decorators.action(detail=True, methods=["get"], url_path="dashboard")
     def dashboard(self, request, pk=None):
         subject = self.get_object()
@@ -168,6 +219,11 @@ class SubjectViewSet(viewsets.ModelViewSet):
             }
         )
 
+    @extend_schema(
+        summary="Export results CSV",
+        description="Download a CSV with all student grades and stats.",
+        responses={(200, "text/csv"): OpenApiTypes.BINARY},
+    )
     @decorators.action(detail=True, methods=["get"], url_path="export-csv")
     def export_csv(self, request, pk=None):
         subject = self.get_object()
@@ -193,6 +249,24 @@ class SubjectViewSet(viewsets.ModelViewSet):
             )
         return response
 
+    @extend_schema(
+        summary="Upload results via CSV",
+        description="Upload a CSV file to bulk upload results. Required columns: student_email, exercise_name, status.",
+        request=CSVUploadSerializer,
+        responses={
+            200: inline_serializer(
+                name="ResultsCSVResponse",
+                fields={
+                    "created": serializers.IntegerField(),
+                    "updated": serializers.IntegerField(),
+                    "skipped": serializers.IntegerField(),
+                    "errors": serializers.ListField(
+                        child=serializers.DictField()
+                    ),
+                },
+            )
+        },
+    )
     @decorators.action(
         detail=True,
         methods=["post"],
@@ -273,6 +347,18 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         # Students see exercises for enrolled subjects
         return qs.filter(subject__enrollments__student=user).distinct()
 
+    @extend_schema(
+        summary="Submit exercise solution",
+        description="Submit a solution file or text.",
+        request=inline_serializer(
+            name="SubmissionRequest",
+            fields={
+                "submission_file": serializers.FileField(required=False),
+                "submission_text": serializers.CharField(required=False),
+            },
+        ),
+        responses={200: StudentExerciseResultSerializer},
+    )
     @decorators.action(
         detail=True,
         methods=["post"],
@@ -379,6 +465,23 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 class EnrollmentResultsView(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        summary="List enrollment results",
+        description="Get all exercise results for a specific enrollment.",
+        responses={
+            200: inline_serializer(
+                name="EnrollmentResultsResponse",
+                fields={
+                    "enrollment_id": serializers.IntegerField(),
+                    "student_email": serializers.EmailField(),
+                    "results": serializers.ListField(
+                        child=serializers.DictField()
+                    ),
+                    "stats": serializers.DictField(),
+                },
+            )
+        },
+    )
     @decorators.action(detail=True, methods=["get"], url_path="results")
     def list_results(self, request, pk=None):
         enrollment = get_object_or_404(Enrollment, pk=pk)
