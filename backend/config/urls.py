@@ -19,10 +19,10 @@ def home_view(request):
         'status': 'active',
         'endpoints': {
             'health': '/health/',
-            'authentication': '/api/auth/',
-            'courses': '/api/courses/',
-            'notifications': '/api/notifs/',
-            'messaging': '/api/messaging/',
+            'authentication': '/api/v1/auth/',
+            'courses': '/api/v1/courses/',
+            'notifications': '/api/v1/notifs/',
+            'messaging': '/api/v1/messaging/',
             'admin_panel': '/admin/',
             'api_documentation': '/api/docs/',
             'api_schema': '/api/schema/',
@@ -42,10 +42,10 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 
     # Apps
-    path('api/auth/', include('accounts.urls')),
-    path('api/courses/', include('courses.urls')),
-    path('api/notifs/', include('notifications.urls')),
-    path('api/messaging/', include('messaging.urls')),
+    path('api/v1/auth/', include('accounts.urls')),
+    path('api/v1/courses/', include('courses.urls')),
+    path('api/v1/notifs/', include('notifications.urls')),
+    path('api/v1/messaging/', include('messaging.urls')),
 ]
 
 if settings.DEBUG:
