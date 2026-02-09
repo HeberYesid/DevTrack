@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import { api } from '../api/axios'
 import StudentDashboard from './StudentDashboard'
+import Alert from '../components/Alert'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -19,7 +20,7 @@ export default function Dashboard() {
   async function loadSubjects() {
     setLoading(true)
     try {
-      const { data } = await api.get('/api/courses/subjects/')
+      const { data } = await api.get('/api/v1/courses/subjects/')
       setSubjects(data)
     } finally {
       setLoading(false)
@@ -40,7 +41,7 @@ export default function Dashboard() {
     setError('')
     setSuccess('')
     try {
-      await api.delete(`/api/courses/subjects/${subject.id}/`)
+      await api.delete(`/api/v1/courses/subjects/${subject.id}/`)
       setSuccess(`Materia "${subject.name}" eliminada exitosamente`)
       loadSubjects()
       setTimeout(() => setSuccess(''), 3000)
@@ -63,16 +64,8 @@ export default function Dashboard() {
     return (
       <div className="fade-in">
         {/* Mensajes de éxito/error */}
-        {success && (
-          <div className="alert success" style={{ marginBottom: 'var(--space-lg)' }}>
-            {success}
-          </div>
-        )}
-        {error && (
-          <div className="alert error" style={{ marginBottom: 'var(--space-lg)' }}>
-            {error}
-          </div>
-        )}
+        <Alert type="success" message={success} />
+        <Alert type="error" message={error} />
 
         <div className="dashboard-header">
           <div>

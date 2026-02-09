@@ -65,6 +65,29 @@ test(accounts): agregar tests para verificación de email
 
 ---
 
+## 🏗️ Patrones Críticos de Desarrollo
+
+### 1. Permisos Basados en Roles (Backend)
+Utiliza las **clases de permisos compositivas** de `{app}/permissions.py`. No crees lógica de permisos manual en las vistas si puedes evitarlo.
+
+```python
+from courses.permissions import IsTeacherOrAdmin, IsOwnerTeacherOrAdmin
+
+class SubjectViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsTeacherOrAdmin, IsOwnerTeacherOrAdmin]
+```
+
+### 2. Notificaciones Automáticas
+**Nunca crees notificaciones manualmente**. Todas se generan mediante signals en `courses/signals.py`. Si agregas un nuevo evento que requiera notificación, añade el receiver correspondiente allí.
+
+### 3. Rate Limiting
+Aplica los decoradores pre-configurados de `accounts/ratelimit.py` en endpoints sensibles (auth, carga de archivos).
+
+### 4. Autenticación en Frontend
+Usa siempre el hook `useAuth` de `AuthContext` para acceder al usuario y funciones de sesión. No manipules tokens manualmente en los componentes.
+
+---
+
 ## 🧪 Testing
 
 ### Backend

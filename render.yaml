@@ -6,7 +6,7 @@ services:
     runtime: python
     region: oregon
     plan: free
-    branch: main
+    branch: develop
     rootDir: backend
     buildCommand: ./build.sh
     startCommand: ./start.sh

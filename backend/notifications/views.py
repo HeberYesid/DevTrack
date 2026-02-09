@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, decorators, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, OpenApiTypes
 
 from .models import Notification
 from .serializers import NotificationSerializer
@@ -27,11 +28,20 @@ class NotificationViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Get unread count",
+        responses={200: OpenApiTypes.OBJECT},
+    )
     @decorators.action(detail=False, methods=['get'], url_path='unread-count')
     def unread_count(self, request):
         count = self.get_queryset().filter(is_read=False).count()
         return Response({'unread': count})
 
+    @extend_schema(
+        summary="Mark as read",
+        request=None,
+        responses={200: OpenApiTypes.OBJECT},
+    )
     @decorators.action(detail=True, methods=['post'], url_path='mark-read')
     def mark_read(self, request, pk=None):
         notification = self.get_object()
@@ -39,12 +49,22 @@ class NotificationViewSet(viewsets.ModelViewSet):
         notification.save()
         return Response({'status': 'marked as read'})
 
+    @extend_schema(
+        summary="Mark all as read",
+        request=None,
+        responses={200: OpenApiTypes.OBJECT},
+    )
     @decorators.action(detail=False, methods=['post'], url_path='mark-all-read')
     def mark_all_read(self, request):
         qs = self.get_queryset().filter(is_read=False)
         updated = qs.update(is_read=True)
         return Response({'updated': updated})
     
+    @extend_schema(
+        summary="Delete all notifications",
+        request=None,
+        responses={200: OpenApiTypes.OBJECT},
+    )
     @decorators.action(detail=False, methods=['post'], url_path='delete-all')
     def delete_all(self, request):
         count = self.get_queryset().count()

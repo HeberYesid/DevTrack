@@ -69,113 +69,42 @@ Backend automatically detects environment:
 
 ## Critical Patterns
 
-### 1. Role-Based Permissions (Backend)
-Use **composable permission classes** from `{app}/permissions.py`:
+### 1. Role-Based Permissions
+Use **composable permission classes** from `courses/permissions.py`:
 ```python
 # courses/views.py
 from courses.permissions import IsTeacherOrAdmin, IsOwnerTeacherOrAdmin
 
 class SubjectViewSet(viewsets.ModelViewSet):
+    # AND logic: must be Teacher/Admin AND Owner/Admin
     permission_classes = [IsTeacherOrAdmin, IsOwnerTeacherOrAdmin]
-    
-    def get_queryset(self):
-        # Students see only enrolled subjects
-        if self.request.user.role == 'STUDENT':
-            return Subject.objects.filter(enrollments__student=self.request.user)
 ```
 
-**Key**: `IsOwnerTeacherOrAdmin` checks `subject.teacher_id == user.id` for object-level ownership.
+### 2. Signals & Notifications
+**NEVER** create `Notification` objects manually in views. Use signals in `courses/signals.py`.
+- **Enrollment Created**: Notifies Student + Teacher.
+- **Result Updated**: Notifies Student.
+- **Submission**: Notifies Teacher.
+- **Demo Subject**: New students automatically get `DEMO-101` subject.
 
-### 2. Rate Limiting (Backend)
-Use **pre-configured decorators** from `accounts/ratelimit.py`:
-```python
-from accounts.ratelimit import ratelimit_auth, ratelimit_email
+*Note: Notifications include a `link` field for frontend routing.*
 
-@ratelimit_auth  # 5 attempts/min per IP
-def login_view(request): ...
-```
+### 3. Authentication & Limits
+- **Rate Limiting**: Use `@ratelimit_auth` decorator (5 attempts/min).
+- **Email Verification**: Uses 6-digit codes (not tokens). `user.create_email_verification_code()`.
+- **Auto-Logout**: `AuthContext` enforces `user.session_timeout` (default 30m).
 
-### 3. Email Verification (Backend)
-Uses **6-digit codes** (not URL tokens):
-```python
-# accounts/models.py
-code = user.create_email_verification_code(minutes_valid=15)
-# Prints to console in dev, emails in prod
-```
+### 4. CSV Operations
+Use **DRF action endpoints** (e.g., `SubjectViewSet.upload_results_csv`).
+- **Strictness**: Validation is critical.
+- **Normalization**: Use `normalize_status` helper for flexible inputs ("verde", "TRUE", "1" → `GREEN`).
+- **Format**: See `/samples` for headers (`student_email`, `exercise_name`, `status`).
 
-### 4. Notifications (Backend)
-**All auto-generated via signals** in `courses/signals.py`. Never create manually:
-```python
-@receiver(post_save, sender=Enrollment)
-def notify_enrollment_created(sender, instance, created, **kwargs):
-    # Creates notifications for student + teacher
-```
-
-### 5. CSV Bulk Operations (Backend)
-Use **DRF action endpoints** without explicit transactions (signals handle notifications):
-```python
-@decorators.action(detail=True, methods=['post'], url_path='enrollments/upload-csv', 
-                   parser_classes=[parsers.MultiPartParser])
-def upload_enrollments_csv(self, request, pk=None):
-    # Parse CSV, get_or_create users, create enrollments
-    # Returns: {"created": N, "existed": M, "errors": [...]}
-```
-
-**Key implementations**: 
-- `SubjectViewSet.upload_enrollments_csv` (lines 75-117 in courses/views.py)
-- `SubjectViewSet.upload_results_csv` (lines 175-237 in courses/views.py)
-
-**CSV formats** in `/samples`:
-- `enrollments.csv`: email, first_name (optional), last_name (optional)
-- `student_results.csv`: student_email, exercise_name, status (GREEN/YELLOW/RED)
-
-### 6. Authentication (Frontend)
-**Always use `AuthContext`**:
-```javascript
-import { useAuth } from '../state/AuthContext'
-
-function Component() {
-  const { user, logout, isAuthenticated } = useAuth()
-  // user: {id, email, first_name, last_name, role, is_verified}
-}
-```
-
-Token refresh handled in `api/config.js` axios interceptors.
-
-### 7. Theme System (Frontend)
-Use **CSS variables only**:
-```css
-/* styles.css - switches via [data-theme="dark|light"] */
-background: var(--bg-card);
-color: var(--text-primary);
-```
-
-### 8. API Calls (Frontend)
-Centralize in `api/` directory with pre-configured axios:
-```javascript
-import { api } from './axios'  // Has auth interceptors + auto-refresh
-
-export const getSubjects = async () => {
-  const { data } = await api.get('/api/courses/subjects/')
-  return data
-}
-```
-
-**Auto-refresh on 401**: `api/axios.js` (lines 40-75) handles token refresh with queuing to prevent concurrent refresh requests.
-
-### 9. Role-Based Routing (Frontend)
-Use `<ProtectedRoute>` wrapper for role restrictions:
-```jsx
-// App.jsx pattern
-<Route path="/subjects" element={
-  <ProtectedRoute roles={["TEACHER", "ADMIN"]}>
-    <Subjects />
-  </ProtectedRoute>
-} />
-```
-
-### 10. Auto-Logout on Inactivity (Frontend)
-`AuthContext` tracks mouse/keyboard events and logs out after `user.session_timeout` minutes (default: 30, configurable per user 5-120).
+### 5. Frontend Architecture
+- **State**: `AuthContext` (User), `ThemeContext` (CSS vars).
+- **Styling**: Use CSS variables (`--bg-card`) from `styles.css`.
+- **API**: Use `api` from `src/api/axios.js` (handles 401 refresh loops).
+- **Routing**: `<ProtectedRoute roles={["TEACHER"]}>`.
 
 ## Environment Setup
 
@@ -215,14 +144,19 @@ FLUSH PRIVILEGES;
 ```python
 # courses/models.py - Enrollment.stats()
 if green == total:
-    grade = 5.0
+    grade = 5.0  # Perfect score
 elif yellow / total >= 0.6:
-    grade = 3.0
+    grade = 3.0  # Passing threshold
 else:
-    grade = 5.0 * (green / total)
+    grade = round(5.0 * (green / total), 2) # Proportional
 ```
 
-Status enum: `GREEN`/`YELLOW`/`RED` in `StudentExerciseResult.Status`.
+**Semaphore Logic** (Visual Indicator):
+- `GREEN`: Grade = 5.0 OR Grade >= 4.5
+- `YELLOW`: Yellows >= 60% OR Grade >= 3.0
+- `RED`: Otherwise
+
+Status Enum: `GREEN`, `YELLOW`, `RED`, `SUBMITTED`.
 
 ## Key Files
 

@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .models import Subject, Enrollment, Exercise, StudentExerciseResult, Notification, CalendarEvent
+from .validators import validate_file_content
 
 User = get_user_model()
 
@@ -148,9 +149,20 @@ class StudentExerciseResultSerializer(serializers.ModelSerializer):
     def get_student_name(self, obj):
         return f"{obj.enrollment.student.first_name} {obj.enrollment.student.last_name}".strip()
 
+    def validate_submission_file(self, value):
+        if value:
+            # Lista de extensiones permitidas comunes para tareas académicas
+            allowed = ['pdf', 'zip', 'rar', 'tar', 'gz', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'txt', 'py', 'js', 'html', 'css', 'java', 'c', 'cpp']
+            validate_file_content(value, allowed_types=allowed)
+        return value
+
 
 class CSVUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
+
+    def validate_file(self, value):
+        validate_file_content(value, allowed_types=['csv'])
+        return value
 
 
 class EnrollmentStatsSerializer(serializers.Serializer):

@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/axios'
+import Alert from '../components/Alert'
 
 export default function Subjects() {
   const [items, setItems] = useState([])
@@ -10,7 +11,7 @@ export default function Subjects() {
   const [success, setSuccess] = useState('')
 
   async function load() {
-    const { data } = await api.get('/api/courses/subjects/')
+    const { data } = await api.get('/api/v1/courses/subjects/')
     setItems(data)
   }
 
@@ -23,7 +24,7 @@ export default function Subjects() {
     setError('')
     setSuccess('')
     try {
-      await api.post('/api/courses/subjects/', { name, code })
+      await api.post('/api/v1/courses/subjects/', { name, code })
       setName('')
       setCode('')
       setSuccess('Materia creada exitosamente')
@@ -45,7 +46,7 @@ export default function Subjects() {
     setError('')
     setSuccess('')
     try {
-      await api.delete(`/api/courses/subjects/${subject.id}/`)
+      await api.delete(`/api/v1/courses/subjects/${subject.id}/`)
       setSuccess(`Materia "${subject.name}" eliminada exitosamente`)
       load()
       setTimeout(() => setSuccess(''), 3000)
@@ -58,16 +59,8 @@ export default function Subjects() {
   return (
     <div>
       {/* Mensajes de éxito/error */}
-      {success && (
-        <div className="alert success" style={{ marginBottom: 'var(--space-lg)' }}>
-          {success}
-        </div>
-      )}
-      {error && (
-        <div className="alert error" style={{ marginBottom: 'var(--space-lg)' }}>
-          {error}
-        </div>
-      )}
+      <Alert type="success" message={success} />
+      <Alert type="error" message={error} />
 
       <div className="grid cols-2 grid-stack-mobile">
         <div className="card">

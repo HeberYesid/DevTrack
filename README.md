@@ -14,9 +14,11 @@
 - **Cálculo Automático de Notas**: Lógica inteligente basada en estado de ejercicios
 - **Notificaciones en Tiempo Real**: Alertas automáticas generadas por eventos del sistema
 - **Carga Masiva de Datos**: Importación CSV de estudiantes y resultados
+- **Auto-Logout por Inactividad**: Cierre de sesión automático configurable (5-120 min) para mayor seguridad
 - **Control de Acceso Granular**: Tres roles con permisos específicos (Student/Teacher/Admin)
 - **Autenticación Segura**: JWT con refresh tokens y verificación de email por código de 6 dígitos
-- **Protección Anti-Abuso**: Rate limiting configurable en endpoints sensibles
+- **Base de Datos Dual**: Soporte para MySQL (local) y PostgreSQL (producción) con detección automática
+- **Protección Anti-Abuso**: Rate limiting pre-configurado en endpoints sensibles
 - **Sistema de Temas**: Modo claro/oscuro con CSS variables
 - **Optimizado**: Bundle reducido y dependencias mínimas para mejor rendimiento
 
@@ -27,8 +29,9 @@
 **Backend**
 - Django 5.0 + Django REST Framework
 - **Google Gemini 2.0 Flash** para IA generativa
-- MySQL 8+ para persistencia de datos
-- JWT para autenticación
+- MySQL 8.0+ (Local) / PostgreSQL (Producción)
+- JWT para autenticación segura
+- Signals de Django para automatización de notificaciones
 
 
 **Frontend**
@@ -79,7 +82,12 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 FRONTEND_URL=http://localhost:5173
 EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 GEMINI_API_KEY=tu_api_key_de_google_ai_studio
+
+# Opción Producción:
+# DATABASE_URL=postgres://user:password@host:port/dbname
 ```
+
+> **Nota sobre Base de Datos**: El sistema detecta automáticamente el entorno. Si `DATABASE_URL` está presente, usará PostgreSQL. De lo contrario, buscará las variables `DB_*` para MySQL local.
 
 Generar secret key:
 ```powershell
@@ -290,7 +298,12 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 FRONTEND_URL=http://localhost:5173
 EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 GEMINI_API_KEY=tu_api_key_de_google_ai_studio
+
+# Opción Producción:
+# DATABASE_URL=postgres://user:password@host:port/dbname
 ```
+
+> **Nota sobre Base de Datos**: El sistema detecta automáticamente el entorno. Si `DATABASE_URL` está presente, usará PostgreSQL. De lo contrario, buscará las variables `DB_*` para MySQL local.
 
 Generar secret key:
 ```powershell
