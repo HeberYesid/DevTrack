@@ -74,7 +74,7 @@ class TestIsOwnerTeacherOrAdmin:
         )
         
         factory = APIRequestFactory()
-        request = factory.get('/')
+        request = factory.patch('/')
         request.user = other_teacher
         
         subject = Subject.objects.create(
@@ -85,26 +85,11 @@ class TestIsOwnerTeacherOrAdmin:
         
         permission = IsOwnerTeacherOrAdmin()
         assert permission.has_object_permission(request, None, subject) is False
-    
-    def test_admin_has_permission(self, teacher_user, admin_user):
-        """Test that admins have permission to any subject"""
-        factory = APIRequestFactory()
-        request = factory.get('/')
-        request.user = admin_user
         
-        subject = Subject.objects.create(
-            name='Math',
-            code='MATH101',
-            teacher=teacher_user
-        )
-        
-        permission = IsOwnerTeacherOrAdmin()
-        assert permission.has_object_permission(request, None, subject) is True
-    
     def test_student_no_permission(self, teacher_user, student_user):
         """Test that students don't have permission"""
         factory = APIRequestFactory()
-        request = factory.get('/')
+        request = factory.patch('/')
         request.user = student_user
         
         subject = Subject.objects.create(

@@ -87,7 +87,8 @@ def send_verification_code_email(user: User, is_password_reset: bool = False) ->
     Retorna el código generado.
     """
     # Crear el código de verificación
-    code = user.create_email_verification_code()
+    code_type = 'PASSWORD_RESET' if is_password_reset else 'EMAIL_VERIFICATION'
+    code = user.create_email_verification_code(code_type=code_type)
     email = user.email
     
     # Mostrar el código en la consola del servidor

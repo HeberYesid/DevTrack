@@ -2,7 +2,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 
-from .models import Enrollment, StudentExerciseResult, Exercise, Notification, Subject
+from .models import Enrollment, StudentExerciseResult, Exercise, Subject
+from notifications.models import Notification
 
 User = get_user_model()
 
@@ -53,19 +54,19 @@ def notify_enrollment_created(sender, instance: Enrollment, created: bool, **kwa
         subject = instance.subject
         # Notify student
         Notification.objects.create(
-            user=instance.student,
-            notification_type=Notification.NotificationType.ENROLLMENT,
+            recipient=instance.student,
+            type=Notification.Type.ENROLLMENT_CREATED,
             title=f'📚 Inscrito en {subject.code}',
             message=f'Has sido inscrito en {subject.name}. Profesor: {subject.teacher.email}',
-            link=f'/subjects/{subject.id}',
+            link_url=f'/subjects/{subject.id}',
         )
         # Notify teacher
         Notification.objects.create(
-            user=subject.teacher,
-            notification_type=Notification.NotificationType.ENROLLMENT,
+            recipient=subject.teacher,
+            type=Notification.Type.ENROLLMENT_CREATED,
             title=f'👥 Nuevo estudiante en {subject.code}',
             message=f'{instance.student.email} fue inscrito en tu materia.',
-            link=f'/subjects/{subject.id}',
+            link_url=f'/subjects/{subject.id}',
         )
     except Exception as e:
         # Avoid breaking main flow on notification errors
@@ -89,30 +90,30 @@ def notify_result_updated(sender, instance: StudentExerciseResult, created: bool
         if instance.status == 'SUBMITTED':
             # Notify Teacher about submission
             Notification.objects.create(
-                user=subject.teacher,
-                notification_type=Notification.NotificationType.SUBMISSION_CREATED,
+                recipient=subject.teacher,
+                type=Notification.Type.GENERAL, # Fallback as SUBMISSION_CREATED is not in current Type enum for notifications app?
                 title=f'📄 Nueva entrega en {subject.code}',
                 message=f"El estudiante {enrollment.student.email} ha entregado el ejercicio '{instance.exercise.name}'.",
-                link=f'/subjects/{subject.id}',
+                link_url=f'/subjects/{subject.id}',
             )
 
         if created:
             # Notify student about new result
             Notification.objects.create(
-                user=enrollment.student,
-                notification_type=Notification.NotificationType.RESULT_CREATED,
+                recipient=enrollment.student,
+                type=Notification.Type.GENERAL, # Fallback
                 title=f'{status_emoji} Nuevo resultado en {subject.code}',
                 message=f"Ejercicio '{instance.exercise.name}' calificado como {instance.status}.",
-                link=f'/subjects/{subject.id}',
+                link_url=f'/subjects/{subject.id}',
             )
         else:
             # Notify student about result update
             Notification.objects.create(
-                user=enrollment.student,
-                notification_type=Notification.NotificationType.RESULT_UPDATED,
+                recipient=enrollment.student,
+                type=Notification.Type.RESULTS_UPDATED,
                 title=f'{status_emoji} Resultado actualizado en {subject.code}',
                 message=f"El ejercicio '{instance.exercise.name}' fue actualizado a {instance.status}.",
-                link=f'/subjects/{subject.id}',
+                link_url=f'/subjects/{subject.id}',
             )
     except Exception as e:
         print(f"Error creating result notification: {e}")
@@ -132,11 +133,11 @@ def notify_exercise_created(sender, instance: Exercise, created: bool, **kwargs)
         for enrollment in enrollments:
             notifications.append(
                 Notification(
-                    user=enrollment.student,
-                    notification_type=Notification.NotificationType.EXERCISE_CREATED,
+                    recipient=enrollment.student,
+                    type=Notification.Type.GENERAL, # Fallback
                     title=f'Nuevo ejercicio en {subject.code}',
                     message=f"Se creó el ejercicio '{instance.name}' en {subject.name}.",
-                    link=f'/subjects/{subject.id}',
+                    link_url=f'/subjects/{subject.id}',
                 )
             )
         

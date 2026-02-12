@@ -287,6 +287,15 @@ class ForgotPasswordView(APIView):
 
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
+        turnstile_token = request.data.get('turnstile_token')
+        
+        # Verify Turnstile
+        from .utils import verify_turnstile_token
+        if not verify_turnstile_token(turnstile_token, request.META.get('REMOTE_ADDR')):
+             return Response(
+                {'detail': 'Error de verificación Turnstile. Por favor intenta de nuevo.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         if not email:
             return Response(

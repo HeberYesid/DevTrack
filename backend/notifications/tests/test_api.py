@@ -53,7 +53,7 @@ class TestNotificationAPI:
         response = authenticated_client.get(url)
         
         assert response.status_code == 200
-        assert response.data['count'] == 2
+        assert response.data['unread'] == 2
     
     def test_mark_notification_as_read(self, authenticated_client, student_user):
         """Test marking notification as read"""
@@ -64,7 +64,7 @@ class TestNotificationAPI:
             is_read=False
         )
         
-        url = reverse('notification-mark-as-read', kwargs={'pk': notification.pk})
+        url = reverse('notification-mark-read', kwargs={'pk': notification.pk})
         response = authenticated_client.post(url)
         
         assert response.status_code == 200

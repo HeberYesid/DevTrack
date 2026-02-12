@@ -52,6 +52,7 @@ class TestSubjectAPI:
             teacher=teacher_user
         )
         
+        authenticated_client.force_authenticate(user=teacher_user)
         url = reverse('subject-detail', kwargs={'pk': subject.pk})
         response = authenticated_client.get(url)
         
@@ -100,7 +101,7 @@ class TestEnrollmentAPI:
         response = authenticated_client.get(url)
         
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert len(response.data['enrollments']) == 2
     
     def test_cannot_enroll_twice(self, authenticated_client, student_user, teacher_user):
         """Test that student cannot be enrolled twice in same subject"""
