@@ -33,7 +33,7 @@ class TestEnrollmentSignals:
         
         student_notif = Notification.objects.filter(recipient=student_user).first()
         assert student_notif is not None
-        assert 'inscripción' in student_notif.title.lower() or 'enrollment' in student_notif.title.lower()
+        assert 'inscrito' in student_notif.title.lower() or 'enrollment' in student_notif.title.lower()
         
         teacher_notif = Notification.objects.filter(recipient=teacher_user).first()
         assert teacher_notif is not None

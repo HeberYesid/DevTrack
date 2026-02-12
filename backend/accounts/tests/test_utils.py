@@ -133,8 +133,9 @@ class TestVerifyTurnstileToken:
     @patch('accounts.utils.os.getenv')
     def test_verify_turnstile_network_error(self, mock_getenv, mock_post):
         """Test network error during verification"""
+        import requests
         mock_getenv.return_value = 'test_secret'
-        mock_post.side_effect = Exception('Network error')
+        mock_post.side_effect = requests.RequestException('Network error')
         
         result = verify_turnstile_token('token')
         assert result is False

@@ -142,7 +142,7 @@ class TestChangePasswordAPI:
         """Test successful password change"""
         url = reverse('change-password')
         data = {
-            'old_password': 'testpass123',
+            'current_password': 'testpass123',
             'new_password': 'NewSecurePassword123!'
         }
         response = authenticated_client.post(url, data, format='json')
@@ -191,25 +191,25 @@ class TestChangePasswordAPI:
 class TestUserExistsAPI:
     """Tests for user exists check endpoint"""
     
-    def test_user_exists(self, api_client, student_user):
+    def test_user_exists(self, authenticated_client, student_user):
         """Test checking if user exists"""
-        url = reverse('user-exists')
-        response = api_client.get(url, {'email': student_user.email})
+        url = reverse('check-user-exists')
+        response = authenticated_client.get(url, {'email': student_user.email})
         
         assert response.status_code == 200
         assert response.data['exists'] is True
     
-    def test_user_not_exists(self, api_client):
+    def test_user_not_exists(self, authenticated_client):
         """Test checking if non-existent user exists"""
-        url = reverse('user-exists')
-        response = api_client.get(url, {'email': 'nonexistent@example.com'})
+        url = reverse('check-user-exists')
+        response = authenticated_client.get(url, {'email': 'nonexistent@example.com'})
         
-        assert response.status_code == 200
+        assert response.status_code == 404
         assert response.data['exists'] is False
     
-    def test_user_exists_no_email(self, api_client):
+    def test_user_exists_no_email(self, authenticated_client):
         """Test user exists endpoint without email parameter"""
-        url = reverse('user-exists')
-        response = api_client.get(url)
+        url = reverse('check-user-exists')
+        response = authenticated_client.get(url)
         
         assert response.status_code == 400

@@ -304,12 +304,44 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 
 # Content Security Policy (CSP)
+# Define policies as tuple/list constants to support both old and new django-csp versions
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com")
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")
-CSP_IMG_SRC = ("'self'", "data:", "https://*")
+CSP_SCRIPT_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'",
+    "https://accounts.google.com",
+    "https://cdn.jsdelivr.net",
+    "https://devtrack-production-2b1d.up.railway.app",
+)
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://fonts.googleapis.com",
+    "https://cdn.jsdelivr.net",
+)
+CSP_IMG_SRC = ("'self'", "data:", "https://*", "https://cdn.jsdelivr.net")
 CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com", "data:")
-CSP_CONNECT_SRC = ("'self'",)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://accounts.google.com",
+    "https://devtrack-production-2b1d.up.railway.app",
+)
 CSP_FRAME_SRC = ("'self'", "https://accounts.google.com")
+CSP_WORKER_SRC = ("'self'", "blob:")
+
+# Dictionary for django-csp 3.8+ (reuses above constants)
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": CSP_DEFAULT_SRC,
+        "script-src": CSP_SCRIPT_SRC,
+        "style-src": CSP_STYLE_SRC,
+        "img-src": CSP_IMG_SRC,
+        "font-src": CSP_FONT_SRC,
+        "connect-src": CSP_CONNECT_SRC,
+        "frame-src": CSP_FRAME_SRC,
+        "worker-src": CSP_WORKER_SRC,
+    }
+}
 
 X_FRAME_OPTIONS = 'DENY'  # Already set by XFrameOptionsMiddleware

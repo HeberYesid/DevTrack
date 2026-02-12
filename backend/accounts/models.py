@@ -26,19 +26,24 @@ class User(AbstractUser):
         EmailVerificationToken.objects.create(user=self, token=token, expires_at=expiry)
         return token
 
-    def create_email_verification_code(self, minutes_valid: int = 15) -> str:
+    def create_email_verification_code(self, minutes_valid: int = 15, code_type: str = 'EMAIL_VERIFICATION') -> str:
         """
         Crea un código de verificación de 6 dígitos para el usuario.
-        Invalida cualquier código anterior no usado.
+        Invalida cualquier código anterior no usado del mismo tipo.
         """
-        # Invalidar códigos anteriores no usados
-        EmailVerificationCode.objects.filter(user=self, is_used=False).update(is_used=True)
+        # Invalidar códigos anteriores no usados del mismo tipo
+        EmailVerificationCode.objects.filter(user=self, is_used=False, code_type=code_type).update(is_used=True)
         
         # Generar nuevo código de 6 dígitos
         code = f"{random.randint(100000, 999999)}"
         expiry = timezone.now() + timedelta(minutes=minutes_valid)
         
-        EmailVerificationCode.objects.create(user=self, code=code, expires_at=expiry)
+        EmailVerificationCode.objects.create(
+            user=self, 
+            code=code, 
+            expires_at=expiry, 
+            code_type=code_type
+        )
         return code
 
 
