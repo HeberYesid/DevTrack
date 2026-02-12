@@ -279,44 +279,6 @@ class SubjectViewSet(viewsets.ModelViewSet):
         file_serializer = CSVUploadSerializer(data=request.data)
         file_serializer.is_valid(raise_exception=True)
         f = file_serializer.validated_data["file"]
-        decoded = f.read().decode("utf-8", errors="ignore")
-        reader = csv.DictReader(io.StringIO(decoded))
-        required = {"student_email", "exercise_name", "status"}
-        if not required.issubset(
-            set([c.strip().lower() for c in (reader.fieldnames or [])])
-        ):
-            return Response(
-                {
-                    "detail": "CSV inválido. Debe tener columnas: student_email, exercise_name, status."
-                },
-                status=400,
-            )
-
-        def normalize_status(val: str) -> str | None:
-            v = (val or "").strip().lower()
-            if v in {"green", "verde", "g", "1", "true"}:
-                return StudentExerciseResult.Status.GREEN
-            if v in {"yellow", "amarillo", "y"}:
-                return StudentExerciseResult.Status.YELLOW
-            if v in {"red", "rojo", "r", "0", "false"}:
-                return StudentExerciseResult.Status.RED
-            return None
-
-        created, updated, skipped, errors = 0, 0, 0, []
-        # Optionally precreate exercises
-        exercise_cache: Dict[str, Exercise] = {
-            ex.name.lower(): ex for ex in subject.exercises.all()
-        }
-
-        for i, row in enumerate(reader, start=2):
-            email = (row.get("student_email") or "").strip().lower()
-            ex_name = (row.get("exercise_name") or "").strip()
-            status_val = normalize_status(row.get("status"))
-            if not email or not ex_name or status_val is None:
-                errors.append(
-                    {"row": i, "error": "Datos inválidos en columnas requeridas"}
-                )
-                continue
 
         try:
             result = process_results_csv(

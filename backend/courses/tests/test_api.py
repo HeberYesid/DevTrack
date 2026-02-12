@@ -7,10 +7,14 @@ from courses.models import Subject, Enrollment, Exercise, StudentExerciseResult
 class TestSubjectAPI:
     """Tests for Subject API endpoints"""
     
-    def test_list_subjects_as_student(self, authenticated_client, teacher_user):
+    def test_list_subjects_as_student(self, authenticated_client, teacher_user, student_user):
         """Test listing subjects as student"""
-        Subject.objects.create(name='Math', code='MATH101', teacher=teacher_user)
-        Subject.objects.create(name='Physics', code='PHY101', teacher=teacher_user)
+        s1 = Subject.objects.create(name='Math', code='MATH101', teacher=teacher_user)
+        s2 = Subject.objects.create(name='Physics', code='PHY101', teacher=teacher_user)
+        
+        # Enroll student in both
+        Enrollment.objects.create(student=student_user, subject=s1)
+        Enrollment.objects.create(student=student_user, subject=s2)
         
         url = reverse('subject-list')
         response = authenticated_client.get(url)
@@ -60,15 +64,19 @@ class TestEnrollmentAPI:
     """Tests for Enrollment API endpoints"""
     
     def test_enroll_in_subject(self, authenticated_client, student_user, teacher_user):
-        """Test enrolling in a subject"""
+        """Test enrolling in a subject (by Teacher)"""
         subject = Subject.objects.create(
             name='Math',
             code='MATH101',
             teacher=teacher_user
         )
         
-        url = reverse('enrollment-list')
-        data = {'subject': subject.id}
+        # Authenticate as teacher because only teachers can enroll
+        authenticated_client.force_authenticate(user=teacher_user)
+        
+        url = reverse('subject-enrollments', args=[subject.id])
+        data = {'student_email': student_user.email}
+        
         response = authenticated_client.post(url, data, format='json')
         
         assert response.status_code == 201
@@ -85,14 +93,17 @@ class TestEnrollmentAPI:
         Enrollment.objects.create(student=student_user, subject=subject1)
         Enrollment.objects.create(student=student_user, subject=subject2)
         
-        url = reverse('enrollment-list')
+        # Authenticate as student
+        authenticated_client.force_authenticate(user=student_user)
+        
+        url = reverse('my-enrollments')
         response = authenticated_client.get(url)
         
         assert response.status_code == 200
         assert len(response.data) == 2
     
     def test_cannot_enroll_twice(self, authenticated_client, student_user, teacher_user):
-        """Test that student cannot enroll twice in same subject"""
+        """Test that student cannot be enrolled twice in same subject"""
         subject = Subject.objects.create(
             name='Math',
             code='MATH101',
@@ -100,10 +111,14 @@ class TestEnrollmentAPI:
         )
         Enrollment.objects.create(student=student_user, subject=subject)
         
-        url = reverse('enrollment-list')
-        data = {'subject': subject.id}
-        response = authenticated_client.post(url, data, format='json')
+        # Authenticate as teacher
+        authenticated_client.force_authenticate(user=teacher_user)
         
+        url = reverse('subject-enrollments', args=[subject.id])
+        data = {'student_email': student_user.email}
+        
+        response = authenticated_client.post(url, data, format='json')
+        # Expect 400 because student already enrolled
         assert response.status_code == 400
 
 

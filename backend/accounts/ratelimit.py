@@ -30,21 +30,42 @@ def apply_ratelimit(key='ip', rate='5/m', method='POST', block=True):
         rate: Rate limit string (e.g., '5/m' = 5 per minute, '10/h' = 10 per hour)
         method: HTTP methods to rate limit ('POST', 'GET', 'ALL')
         block: Whether to block requests that exceed the limit
-    
-    Usage:
-        @apply_ratelimit(rate='5/m')
-        def my_view(request):
-            ...
     """
+    from django_ratelimit.core import is_ratelimited
+
     def decorator(view_func):
         @wraps(view_func)
-        @ratelimit(key=key, rate=rate, method=method, block=block)
-        def wrapped_view(request, *args, **kwargs):
-            # Check if the request was rate limited
-            was_limited = getattr(request, 'limited', False)
-            if was_limited:
-                return ratelimit_handler(request, None)
-            return view_func(request, *args, **kwargs)
+        def wrapped_view(*args, **kwargs):
+            # Find request object in args
+            request = None
+            for arg in args:
+                if hasattr(arg, 'META') and hasattr(arg, 'method'):
+                    request = arg
+                    break
+            
+            # If we found a request, apply rate limiting manually
+            if request:
+                # Determine group name (default to path or func name)
+                # We use a fixed group or None to let ratelimit decide based on key/view
+                group_name = getattr(view_func, '__qualname__', getattr(view_func, '__name__', str(view_func)))
+                if hasattr(view_func, '__module__'):
+                    group_name = f"{view_func.__module__}.{group_name}"
+
+                # Check limit
+                # Note: is_ratelimited returns True if limited
+                is_limited = is_ratelimited(
+                    request, 
+                    group=group_name, 
+                    key=key, 
+                    rate=rate, 
+                    method=method, 
+                    increment=True
+                )
+                
+                if is_limited and block:
+                    return ratelimit_handler(request, None)
+            
+            return view_func(*args, **kwargs)
         return wrapped_view
     return decorator
 
