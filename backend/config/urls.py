@@ -50,6 +50,12 @@ urlpatterns = [
     path("api/v1/courses/", include("courses.urls")),
     path("api/v1/notifs/", include("notifications.urls")),
     path("api/v1/messaging/", include("messaging.urls")),
+
+    # V1 aliases (backward compatibility)
+    path("api/auth/", include("accounts.urls")),
+    path("api/courses/", include("courses.urls")),
+    path("api/notifs/", include("notifications.urls")),
+    path("api/messaging/", include("messaging.urls")),
 ]
 
 if settings.DEBUG:
